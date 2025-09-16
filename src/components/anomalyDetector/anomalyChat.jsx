@@ -1,229 +1,252 @@
 "use client";
-import React, { useState } from "react";
-import { User } from "lucide-react";
+import React, { useEffect, useMemo, useState } from "react";
+import { Send, MoreHorizontal, Search, Download } from "lucide-react";
 
-const CreateNewAgent = () => {
-  const [agentName, setAgentName] = useState("");
-  const [selectedAvatar, setSelectedAvatar] = useState(0);
-  const [selectedCharacter, setSelectedCharacter] =
-    useState("Anomaly Detector");
-
-  const avatars = [
-    { id: 0, bg: "bg-blue-500", image: "/images/user-avatar.png" },
-    { id: 1, bg: "bg-blue-400", image: "/images/user.jpg" },
-    { id: 2, bg: "bg-blue-600", image: "/images/user-avatar.png" },
-    { id: 3, bg: "bg-gray-400", image: "/images/user.jpg" },
-    { id: 4, bg: "bg-blue-500", image: "/images/user-avatar.png" },
-    { id: 5, bg: "bg-gray-500", image: "/images/user.jpg" },
-    { id: 6, bg: "bg-blue-600", image: "/images/user-avatar.png" },
-  ];
-
-  const characters = [
+const Chat = () => {
+  const [message, setMessage] = useState("");
+  const [faqs, setFaqs] = useState([]);
+  const [messages, setMessages] = useState([
     {
-      id: 1,
-      name: "Customer support agent",
-      color: "bg-purple-100 text-purple-700",
+      id: "b1",
+      user: "Aminity",
+      avatar: "/images/user-avatar.png",
+      message:
+        'Your ad "Spring Deals - Shoes: Clearance" is converting well but "Spring deals - Shoes: Clearance" and "Spring Deals - Shoes: Clearance" haven\'t converted in 5 days. Pause them?',
+      timestamp: "just now",
+      isBot: true,
     },
     {
-      id: 2,
-      name: "Anomaly Detector",
-      color: "bg-green-100 text-green-700",
-      active: true,
-    },
-    { id: 3, name: "Custom agent", color: "bg-green-100 text-green-700" },
-    {
-      id: 4,
-      name: "Friday conversation agent",
-      color: "bg-green-100 text-green-700",
+      id: "b2",
+      user: "Aminity",
+      avatar: "/images/user-avatar.png",
+      message:
+        "Clearance & phrases, let me know if I can help with anything else.",
+      timestamp: "just now",
+      isBot: true,
     },
     {
-      id: 5,
-      name: "Marketing Performance Agent",
-      color: "bg-gray-100 text-gray-700",
+      id: "a1",
+      user: "You",
+      avatar: "/images/user2.jpg",
+      message: "You paused issues with 'Spring Deals - Shoes: Clearance'",
+      timestamp: "just now",
+      isBot: false,
     },
-  ];
+  ]);
 
-  const handleCreateAgent = () => {
-    console.log("Creating agent:", {
-      agentName,
-      selectedAvatar,
-      selectedCharacter,
+  useEffect(() => {
+    fetch("/data/faq.json")
+      .then((r) => r.json())
+      .then((data) => setFaqs(Array.isArray(data) ? data : []))
+      .catch(() => setFaqs([]));
+  }, []);
+
+  const norm = (s) =>
+    String(s || "")
+      .toLowerCase()
+      .replace(/[^\w\s]/g, "")
+      .trim();
+
+  const faqMap = useMemo(() => {
+    const map = {};
+    faqs.forEach((item) => {
+      map[norm(item.q)] = item.a;
     });
+    return map;
+  }, [faqs]);
+
+  const handleSendMessage = () => {
+    const text = message.trim();
+    if (!text) return;
+
+    const newUserMsg = {
+      id: `u-${Date.now()}`,
+      user: "You",
+      avatar: "/images/user2.jpg",
+      message: text,
+      timestamp: "just now",
+      isBot: false,
+    };
+
+    const maybeAnswer = faqMap[norm(text)];
+    const botReply = {
+      id: `bot-${Date.now() + 1}`,
+      user: "Aminity",
+      avatar: "/images/user-avatar.png",
+      message:
+        maybeAnswer ||
+        "I didn't find an exact match for that. Try rephrasing, or ask me another question.",
+      timestamp: "just now",
+      isBot: true,
+    };
+
+    setMessages((prev) => [...prev, newUserMsg, botReply]);
+    setMessage("");
   };
 
-  const handleResetChanges = () => {
-    setAgentName("");
-    setSelectedAvatar(0);
-    setSelectedCharacter("Anomaly Detector");
-  };
-
-  const getCharacterStyles = (character) => {
-    const isSelected = selectedCharacter === character.name;
-
-    if (isSelected) {
-      return {
-        backgroundColor: "#10b981", // Dark green for selected
-        color: "white",
-      };
-    }
-
-    // Specific colors for each button based on your image
-    switch (character.name) {
-      case "Customer support agent":
-        return {
-          backgroundColor: "#f3e8ff", // Light purple
-          color: "#8b5cf6", // Purple text
-        };
-      case "Custom agent":
-        return {
-          backgroundColor: "#dcfce7", // Very light green
-          color: "#16a34a", // Green text
-        };
-      case "Friday conversation agent":
-        return {
-          backgroundColor: "#dcfce7", // Light green
-          color: "#16a34a", // Green text
-        };
-      case "Marketing Performance Agent":
-        return {
-          backgroundColor: "#f3f4f6", // Light gray
-          color: "#6b7280", // Gray text
-        };
-      default:
-        return {
-          backgroundColor: "#dcfce7",
-          color: "#16a34a",
-        };
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
     }
   };
 
   return (
-    <div className="w-full max-w-[600px] md:max-w-[650px] lg:max-w-[700px] mx-auto px-4 md:px-0">
-      {/* Header Section */}
-      <div className="mb-12 text-left">
-        <h1 className="font-['Plus_Jakarta_Sans',sans-serif] text-[32px] md:text-[36px] lg:text-[40px] font-bold leading-none text-[#464255] mb-4">
-          Create New Agent
-        </h1>
-        <p className="font-['Plus_Jakarta_Sans',sans-serif] text-base md:text-lg leading-none text-[#464255] m-0">
-          Helps you to create a new agent for your work
-        </p>
-      </div>
-
-      {/* Main Form Container */}
-      <div className="w-full max-w-[612px] md:max-w-[650px] lg:max-w-[700px] rounded-[25px] bg-[#F7F7F7] p-8 md:p-10 lg:p-12 box-border">
-        {/* Center Profile Image */}
-        <div className="flex justify-center mb-10">
-          <div className="w-[120px] h-[120px] md:w-[130px] md:h-[130px] lg:w-[140px] lg:h-[140px] bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
-            {avatars[selectedAvatar] ? (
+    <div
+      style={{
+        width: "100%",
+        height: "489px",
+        paddingLeft: "0",
+        paddingRight: "0",
+        position: "relative",
+      }}
+    >
+      <div
+        className="overflow-hidden h-full flex flex-col"
+        style={{
+          borderRadius: "30px",
+          border: "0.9px solid #FFFFFF",
+          background: "linear-gradient(180deg, #D2DDF6 0%, #FFFFFF 100%)",
+          boxShadow:
+            "0 1px 0 rgba(255,255,255,0.6) inset, 0 6px 18px rgba(0,0,0,0.05)",
+        }}
+      >
+        {/* Header */}
+        <div
+          className="flex items-center justify-between p-4 flex-shrink-0"
+          style={{ backgroundColor: "transparent" }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full overflow-hidden">
               <img
-                src={avatars[selectedAvatar].image}
-                alt="Selected avatar"
+                src="/images/user-avatar.png"
+                alt="Aminity"
                 className="w-full h-full object-cover"
+                onError={(e) => {
+                  e.target.src =
+                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d2ddf6'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='%23333' font-family='Arial' font-size='14'%3EA%3C/text%3E%3C/svg%3E";
+                }}
               />
-            ) : (
-              <User className="w-[60px] h-[60px] md:w-[65px] md:h-[65px] lg:w-[70px] lg:h-[70px] text-gray-400" />
-            )}
+            </div>
+            <span className="font-medium text-gray-800">Aminity</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button className="p-2 rounded-lg transition-colors hover:bg-white hover:bg-opacity-30">
+              <Download className="w-4 h-4 text-gray-600" />
+            </button>
+            <button className="p-2 rounded-lg transition-colors hover:bg-white hover:bg-opacity-30">
+              <Search className="w-4 h-4 text-gray-600" />
+            </button>
+            <button className="p-2 rounded-lg transition-colors hover:bg-white hover:bg-opacity-30">
+              <MoreHorizontal className="w-4 h-4 text-gray-600" />
+            </button>
           </div>
         </div>
 
-        {/* Agent Name Section */}
-        <div className="mb-8">
-          <label className="block font-['Plus_Jakarta_Sans',sans-serif] text-base md:text-lg font-bold leading-none text-[#464255] mb-3">
-            Agent Name
-          </label>
-          <input
-            type="text"
-            value={agentName}
-            onChange={(e) => setAgentName(e.target.value)}
-            placeholder="Agent Name"
-            className="w-full h-14 md:h-16 rounded-full bg-white border-none outline-none px-6 md:px-7 box-border font-['Plus_Jakarta_Sans',sans-serif] text-sm md:text-base text-black focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-          />
+        {/* Messages */}
+        <div
+          className="p-4 space-y-4 flex-1 overflow-y-auto"
+          style={{
+            background: "rgba(255,255,255,0.55)",
+            backdropFilter: "saturate(140%)",
+          }}
+        >
+          {messages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex gap-3 ${
+                msg.isBot ? "" : "justify-end text-right"
+              }`}
+            >
+              {msg.isBot && (
+                <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+                  <img
+                    src={msg.avatar}
+                    alt={msg.user}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.target.src =
+                        "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d2ddf6'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='%23333' font-family='Arial' font-size='14'%3EA%3C/text%3E%3C/svg%3E";
+                    }}
+                  />
+                </div>
+              )}
+
+              <div className="flex-1 max-w-[75%]">
+                <div
+                  className={`${
+                    msg.isBot ? "text-left" : "text-right ml-auto"
+                  }`}
+                >
+                  {!msg.isBot && (
+                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ml-auto mb-1">
+                      <img
+                        src="/images/user2.jpg"
+                        alt="You"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src =
+                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23ffffff'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='%23000' font-family='Arial' font-size='12'%3EYOU%3C/text%3E%3C/svg%3E";
+                        }}
+                      />
+                    </div>
+                  )}
+                  <div
+                    className={`inline-block px-4 py-2 rounded-xl text-sm leading-relaxed ${
+                      msg.isBot
+                        ? "bg-white/70 text-gray-800"
+                        : "bg-green-500 text-white"
+                    }`}
+                    style={
+                      msg.isBot
+                        ? {
+                            border: "0.9px solid #FFFFFF",
+                            boxShadow:
+                              "0 1px 0 rgba(255,255,255,0.7) inset, 0 4px 12px rgba(0,0,0,0.04)",
+                          }
+                        : {}
+                    }
+                  >
+                    {msg.message}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
 
-        {/* Agent Avatar Section */}
-        <div className="mb-8">
-          <label className="block text-base md:text-lg font-bold text-[#464255] mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
-            Agent Avatar
-          </label>
-          <div className="flex gap-3 md:gap-4 flex-wrap">
-            {avatars.map((avatar) => (
-              <button
-                key={avatar.id}
-                onClick={() => setSelectedAvatar(avatar.id)}
-                className={`
-                  w-[60px] h-[60px] md:w-[65px] md:h-[65px] lg:w-[70px] lg:h-[70px] 
-                  rounded-full flex items-center justify-center cursor-pointer 
-                  transition-all duration-200 box-border overflow-hidden hover:scale-105
-                  ${
-                    selectedAvatar === avatar.id
-                      ? "border-[3px] border-blue-500"
-                      : "border-none"
-                  }
-                  ${avatar.bg}
-                `}
-                aria-label={`Select avatar ${avatar.id}`}
-              >
-                <img
-                  src={avatar.image}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </button>
-            ))}
+        {/* Input */}
+        <div
+          className="p-4 flex-shrink-0 border-t"
+          style={{
+            backgroundColor: "transparent",
+            borderColor: "rgba(255, 255, 255, 0.6)",
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Write your message here..."
+                className="w-full px-4 py-3 rounded-lg border border-white/80 bg-white/90 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={handleSendMessage}
+              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors"
+              title="Send"
+            >
+              <Send className="w-4 h-4" />
+            </button>
           </div>
-        </div>
-
-        {/* Agent Character Section */}
-        <div className="mb-10">
-          <label className="block text-base md:text-lg font-bold text-[#464255] mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
-            Agent Character
-          </label>
-          {/* First row - 3 buttons */}
-          <div className="flex gap-3 md:gap-4 mb-3 md:mb-4 flex-wrap">
-            {characters.slice(0, 3).map((character) => (
-              <button
-                key={character.id}
-                onClick={() => setSelectedCharacter(character.name)}
-                style={getCharacterStyles(character)}
-                className="px-5 md:px-6 py-3 md:py-4 rounded-full text-sm md:text-base font-medium border-none cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] hover:scale-105 flex-shrink-0"
-              >
-                {character.name}
-              </button>
-            ))}
-          </div>
-          {/* Second row - 2 buttons */}
-          <div className="grid grid-cols-2 gap-3 md:gap-4">
-            {characters.slice(3).map((character) => (
-              <button
-                key={character.id}
-                onClick={() => setSelectedCharacter(character.name)}
-                style={getCharacterStyles(character)}
-                className="px-5 md:px-6 py-3 md:py-4 rounded-full text-sm md:text-base font-medium border-none cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] hover:scale-105 text-center"
-              >
-                {character.name}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        <div className="flex flex-col md:flex-row gap-4">
-          <button
-            onClick={handleCreateAgent}
-            className="flex-1 bg-[#2563eb] hover:bg-[#1d4ed8] text-white px-6 py-4 rounded-2xl font-semibold text-base border-none cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-          >
-            Create Agent
-          </button>
-          <button
-            onClick={handleResetChanges}
-            className="flex-1 bg-[#f8fafc] hover:bg-[#f1f5f9] text-[#64748b] px-6 py-4 rounded-2xl font-semibold text-base border border-[#e2e8f0] cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
-          >
-            Reset Changes
-          </button>
         </div>
       </div>
     </div>
   );
 };
 
-export default CreateNewAgent;
+export default Chat;
