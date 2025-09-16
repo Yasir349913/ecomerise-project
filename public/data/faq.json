@@ -1,0 +1,22 @@
+[
+  {
+    "q": "what is anomaly detector?",
+    "a": "Anomaly Detector watches your store metrics and flags unusual patterns so you can fix issues quickly."
+  },
+  {
+    "q": "how do i pause an ad?",
+    "a": "Open Ads → select the ad → click Pause. I can also pause it for you when you confirm."
+  },
+  {
+    "q": "why are my products out of stock?",
+    "a": "Inventory is running low based on recent sales velocity. Consider reordering or reducing ad spend for those items."
+  },
+  {
+    "q": "how do i export the chat?",
+    "a": "Use the Download button on the top right. It exports this conversation as a text file."
+  },
+  {
+    "q": "can you check mismatched prices?",
+    "a": "Yes. I’ll compare prices across channels and show any mismatches so you can fix them."
+  }
+]
