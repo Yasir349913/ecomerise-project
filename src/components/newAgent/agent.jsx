@@ -57,94 +57,66 @@ const CreateNewAgent = () => {
     setSelectedCharacter("Anomaly Detector");
   };
 
+  const getCharacterStyles = (character, index) => {
+    const isSelected = selectedCharacter === character.name;
+    const isCustomerSupport = character.name === "Customer support agent";
+    const isMarketing = character.name === "Marketing Performance Agent";
+
+    let bgColor, textColor;
+
+    if (isSelected) {
+      bgColor = "#10b981";
+      textColor = "white";
+    } else if (isCustomerSupport) {
+      bgColor = "#f3e8ff";
+      textColor = "#7c3aed";
+    } else if (isMarketing) {
+      bgColor = "#dcfce7";
+      textColor = "#6b7280";
+    } else {
+      bgColor = "#dcfce7";
+      textColor = "#16a34a";
+    }
+
+    return {
+      width: index < 3 ? "auto" : "calc(50% - 6px)",
+      backgroundColor: bgColor,
+      color: textColor,
+    };
+  };
+
   return (
-    <div style={{ width: "100%", maxWidth: "600px", margin: "0 auto" }}>
+    <div className="w-full max-w-[600px] md:max-w-[650px] lg:max-w-[700px] mx-auto px-4 md:px-0">
       {/* Header Section */}
-      <div style={{ marginBottom: "48px", textAlign: "left" }}>
-        <h1
-          style={{
-            fontFamily: "Plus Jakarta Sans, sans-serif",
-            fontSize: "32px",
-            fontWeight: 700,
-            lineHeight: "100%",
-            color: "#464255",
-            margin: "0 0 16px 0",
-          }}
-        >
+      <div className="mb-12 text-left">
+        <h1 className="font-['Plus_Jakarta_Sans',sans-serif] text-[32px] md:text-[36px] lg:text-[40px] font-bold leading-none text-[#464255] mb-4">
           Create New Agent
         </h1>
-        <p
-          style={{
-            fontFamily: "Plus Jakarta Sans, sans-serif",
-            fontSize: "16px",
-            fontWeight: 400,
-            lineHeight: "100%",
-            color: "#464255",
-            margin: 0,
-          }}
-        >
+        <p className="font-['Plus_Jakarta_Sans',sans-serif] text-base md:text-lg leading-none text-[#464255] m-0">
           Helps you to create a new agent for your work
         </p>
       </div>
 
       {/* Main Form Container */}
-      <div
-        style={{
-          width: "100%",
-          maxWidth: "612px",
-          borderRadius: "25px",
-          backgroundColor: "#F7F7F7",
-          padding: "40px",
-          boxSizing: "border-box",
-        }}
-      >
+      <div className="w-full max-w-[612px] md:max-w-[650px] lg:max-w-[700px] rounded-[25px] bg-[#F7F7F7] p-8 md:p-10 lg:p-12 box-border">
         {/* Center Profile Image */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "center",
-            marginBottom: "40px",
-          }}
-        >
-          <div
-            style={{
-              width: "120px",
-              height: "120px",
-              backgroundColor: "#f3f4f6",
-              borderRadius: "50%",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              overflow: "hidden",
-            }}
-          >
+        <div className="flex justify-center mb-10">
+          <div className="w-[120px] h-[120px] md:w-[130px] md:h-[130px] lg:w-[140px] lg:h-[140px] bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
             {avatars[selectedAvatar] ? (
               <img
                 src={avatars[selectedAvatar].image}
                 alt="Selected avatar"
-                style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                className="w-full h-full object-cover"
               />
             ) : (
-              <User
-                style={{ width: "60px", height: "60px", color: "#9ca3af" }}
-              />
+              <User className="w-[60px] h-[60px] md:w-[65px] md:h-[65px] lg:w-[70px] lg:h-[70px] text-gray-400" />
             )}
           </div>
         </div>
 
         {/* Agent Name Section */}
-        <div style={{ marginBottom: "32px" }}>
-          <label
-            style={{
-              display: "block",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
-              fontSize: "16px",
-              fontWeight: 700,
-              lineHeight: "100%",
-              color: "#464255",
-              marginBottom: "12px",
-            }}
-          >
+        <div className="mb-8">
+          <label className="block font-['Plus_Jakarta_Sans',sans-serif] text-base md:text-lg font-bold leading-none text-[#464255] mb-3">
             Agent Name
           </label>
           <input
@@ -152,62 +124,37 @@ const CreateNewAgent = () => {
             value={agentName}
             onChange={(e) => setAgentName(e.target.value)}
             placeholder="Agent Name"
-            style={{
-              width: "100%",
-              height: "56px",
-              borderRadius: "100px",
-              backgroundColor: "#FFFFFF",
-              border: "none",
-              outline: "none",
-              padding: "0 24px",
-              boxSizing: "border-box",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
-              fontSize: "14px",
-              color: "#374151",
-            }}
+            className="w-full h-14 md:h-16 rounded-full bg-white border-none outline-none px-6 md:px-7 box-border font-['Plus_Jakarta_Sans',sans-serif] text-sm md:text-base text-gray-700 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
           />
         </div>
 
         {/* Agent Avatar Section */}
-        <div style={{ marginBottom: "32px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "#464255",
-              marginBottom: "16px",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
-            }}
-          >
+        <div className="mb-8">
+          <label className="block text-base md:text-lg font-bold text-[#464255] mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
             Agent Avatar
           </label>
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
+          <div className="flex gap-3 md:gap-4 flex-wrap">
             {avatars.map((avatar) => (
               <button
                 key={avatar.id}
                 onClick={() => setSelectedAvatar(avatar.id)}
-                style={{
-                  width: "60px",
-                  height: "60px",
-                  borderRadius: "50%",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  border:
-                    selectedAvatar === avatar.id ? "3px solid #3b82f6" : "none",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  boxSizing: "border-box",
-                  overflow: "hidden",
-                }}
-                className={avatar.bg}
+                className={`
+                  w-[60px] h-[60px] md:w-[65px] md:h-[65px] lg:w-[70px] lg:h-[70px] 
+                  rounded-full flex items-center justify-center cursor-pointer 
+                  transition-all duration-200 box-border overflow-hidden hover:scale-105
+                  ${
+                    selectedAvatar === avatar.id
+                      ? "border-[3px] border-blue-500"
+                      : "border-none"
+                  }
+                  ${avatar.bg}
+                `}
                 aria-label={`Select avatar ${avatar.id}`}
               >
                 <img
                   src={avatar.image}
                   alt=""
-                  style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                  className="w-full h-full object-cover"
                 />
               </button>
             ))}
@@ -215,57 +162,17 @@ const CreateNewAgent = () => {
         </div>
 
         {/* Agent Character Section */}
-        <div style={{ marginBottom: "40px" }}>
-          <label
-            style={{
-              display: "block",
-              fontSize: "16px",
-              fontWeight: 700,
-              color: "#464255",
-              marginBottom: "16px",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
-            }}
-          >
+        <div className="mb-10">
+          <label className="block text-base md:text-lg font-bold text-[#464255] mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
             Agent Character
           </label>
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "12px",
-              width: "100%",
-              justifyContent: "flex-start",
-            }}
-          >
+          <div className="flex flex-wrap gap-3 md:gap-4 w-full justify-start">
             {characters.map((character, index) => (
               <button
                 key={character.id}
                 onClick={() => setSelectedCharacter(character.name)}
-                style={{
-                  width: index < 3 ? "auto" : "calc(50% - 6px)",
-                  padding: "12px 20px",
-                  borderRadius: "50px",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  border: "none",
-                  cursor: "pointer",
-                  transition: "all 0.2s ease",
-                  fontFamily: "Plus Jakarta Sans, sans-serif",
-                  backgroundColor:
-                    selectedCharacter === character.name
-                      ? "#10b981"
-                      : character.name === "Customer support agent"
-                      ? "#f3e8ff"
-                      : "#dcfce7",
-                  color:
-                    selectedCharacter === character.name
-                      ? "white"
-                      : character.name === "Customer support agent"
-                      ? "#7c3aed"
-                      : character.name === "Marketing Performance Agent"
-                      ? "#6b7280"
-                      : "#16a34a",
-                }}
+                style={getCharacterStyles(character, index)}
+                className="px-5 md:px-6 py-3 md:py-4 rounded-full text-sm md:text-base font-medium border-none cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] hover:scale-105"
               >
                 {character.name}
               </button>
@@ -274,40 +181,16 @@ const CreateNewAgent = () => {
         </div>
 
         {/* Action Buttons */}
-        <div style={{ display: "flex", gap: "16px" }}>
+        <div className="flex flex-col md:flex-row gap-4">
           <button
             onClick={handleCreateAgent}
-            style={{
-              flex: 1,
-              backgroundColor: "#2563eb",
-              color: "white",
-              padding: "16px 24px",
-              borderRadius: "12px",
-              fontWeight: 600,
-              fontSize: "16px",
-              border: "none",
-              cursor: "pointer",
-              transition: "background-color 0.2s ease",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
-            }}
+            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-4 md:py-5 rounded-xl font-semibold text-base md:text-lg border-none cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             Create Agent
           </button>
           <button
             onClick={handleResetChanges}
-            style={{
-              flex: 1,
-              backgroundColor: "#f3f4f6",
-              color: "#374151",
-              padding: "16px 24px",
-              borderRadius: "12px",
-              fontWeight: 600,
-              fontSize: "16px",
-              border: "none",
-              cursor: "pointer",
-              transition: "background-color 0.2s ease",
-              fontFamily: "Plus Jakarta Sans, sans-serif",
-            }}
+            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 px-6 py-4 md:py-5 rounded-xl font-semibold text-base md:text-lg border-none cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] focus:ring-2 focus:ring-gray-400 focus:ring-offset-2"
           >
             Reset Changes
           </button>
