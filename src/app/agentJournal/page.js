@@ -1,35 +1,33 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import Header from "@/components/common/header";
 import Sidebar from "@/components/common/sideBar";
 import AgentJournal from "@/components/agentJournal/agentJournal";
 
 export default function AgentJournalPage() {
+  const [searchQuery, setSearchQuery] = useState("");
+
   return (
-    <div
-      className="h-screen overflow-hidden"
-      style={{ backgroundColor: "white" }}
-    >
-      {/* Sidebar - Fixed Left */}
+    <div className="min-h-screen bg-white">
+      {/* Fixed Sidebar / Header */}
       <Sidebar />
+      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
 
-      {/* Header - Fixed Top */}
-      <Header />
-
-      {/* Main Content Area */}
+      {/* Main Content */}
       <main
-        style={{
-          marginLeft: "318px", // 280px (sidebar) + 14px (white space) + 24px (content start)
-          marginTop: "80px",
-          height: "calc(100vh - 80px)",
-          overflowY: "auto",
-          overflowX: "hidden",
-          paddingTop: "24px",
-          paddingBottom: "24px",
-          paddingRight: "23px",
-          backgroundColor: "white",
-        }}
+        className="
+          ml-0 md:ml-[318px]
+          mt-20
+          h-[calc(100vh-80px)]
+          overflow-y-auto overflow-x-hidden
+          px-3 sm:px-4 md:px-6 lg:px-8
+          pt-6 pb-6
+          bg-white
+          box-border
+        "
       >
-        <AgentJournal />
+        <AgentJournal searchQuery={searchQuery} />
       </main>
     </div>
   );

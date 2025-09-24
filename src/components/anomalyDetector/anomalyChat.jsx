@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useMemo, useState } from "react";
 import { Send, MoreHorizontal, Search, Download } from "lucide-react";
 
@@ -92,13 +93,11 @@ const Chat = () => {
   };
 
   return (
-    <div
+    <section
+      className="w-full"
       style={{
-        width: "100%",
-        height: "489px",
-        paddingLeft: "0",
-        paddingRight: "0",
-        position: "relative",
+        // Responsive height: smaller on mobile, cap at original on desktop
+        height: "clamp(380px, 65vh, 489px)",
       }}
     >
       <div
@@ -112,10 +111,7 @@ const Chat = () => {
         }}
       >
         {/* Header */}
-        <div
-          className="flex items-center justify-between p-4 flex-shrink-0"
-          style={{ backgroundColor: "transparent" }}
-        >
+        <div className="flex items-center justify-between p-3 sm:p-4 flex-shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full overflow-hidden">
               <img
@@ -123,15 +119,17 @@ const Chat = () => {
                 alt="Aminity"
                 className="w-full h-full object-cover"
                 onError={(e) => {
-                  e.target.src =
+                  e.currentTarget.src =
                     "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d2ddf6'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='%23333' font-family='Arial' font-size='14'%3EA%3C/text%3E%3C/svg%3E";
                 }}
               />
             </div>
-            <span className="font-medium text-gray-800">Aminity</span>
+            <span className="font-medium text-gray-800 text-sm sm:text-base">
+              Aminity
+            </span>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button className="p-2 rounded-lg transition-colors hover:bg-white hover:bg-opacity-30">
               <Download className="w-4 h-4 text-gray-600" />
             </button>
@@ -146,7 +144,7 @@ const Chat = () => {
 
         {/* Messages */}
         <div
-          className="p-4 space-y-4 flex-1 overflow-y-auto"
+          className="px-3 sm:px-4 pb-4 space-y-3 sm:space-y-4 flex-1 overflow-y-auto"
           style={{
             background: "rgba(255,255,255,0.55)",
             backdropFilter: "saturate(140%)",
@@ -166,34 +164,34 @@ const Chat = () => {
                     alt={msg.user}
                     className="w-full h-full object-cover"
                     onError={(e) => {
-                      e.target.src =
+                      e.currentTarget.src =
                         "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23d2ddf6'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='%23333' font-family='Arial' font-size='14'%3EA%3C/text%3E%3C/svg%3E";
                     }}
                   />
                 </div>
               )}
 
-              <div className="flex-1 max-w-[75%]">
+              <div className="flex-1 max-w-[90%] sm:max-w-[80%] md:max-w-[75%]">
                 <div
                   className={`${
                     msg.isBot ? "text-left" : "text-right ml-auto"
                   }`}
                 >
                   {!msg.isBot && (
-                    <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0 ml-auto mb-1">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex-shrink-0 ml-auto mb-1">
                       <img
                         src="/images/user2.jpg"
                         alt="You"
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src =
+                          e.currentTarget.src =
                             "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23ffffff'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='%23000' font-family='Arial' font-size='12'%3EYOU%3C/text%3E%3C/svg%3E";
                         }}
                       />
                     </div>
                   )}
                   <div
-                    className={`inline-block px-4 py-2 rounded-xl text-sm leading-relaxed ${
+                    className={`inline-block px-3 sm:px-4 py-2 rounded-xl text-sm leading-relaxed ${
                       msg.isBot
                         ? "bg-white/70 text-gray-800"
                         : "bg-green-500 text-white"
@@ -218,13 +216,13 @@ const Chat = () => {
 
         {/* Input */}
         <div
-          className="p-4 flex-shrink-0 border-t"
+          className="p-3 sm:p-4 flex-shrink-0 border-t"
           style={{
             backgroundColor: "transparent",
             borderColor: "rgba(255, 255, 255, 0.6)",
           }}
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
             <div className="flex-1 relative">
               <input
                 type="text"
@@ -232,12 +230,12 @@ const Chat = () => {
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
                 placeholder="Write your message here..."
-                className="w-full px-4 py-3 rounded-lg border border-white/80 bg-white/90 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
+                className="w-full px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border border-white/80 bg-white/90 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
               />
             </div>
             <button
               onClick={handleSendMessage}
-              className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-lg transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white p-2.5 sm:p-3 rounded-lg transition-colors"
               title="Send"
             >
               <Send className="w-4 h-4" />
@@ -245,7 +243,7 @@ const Chat = () => {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
 
