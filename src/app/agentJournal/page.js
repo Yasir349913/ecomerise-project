@@ -9,26 +9,31 @@ export default function AgentJournalPage() {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Fixed Sidebar / Header */}
-      <Sidebar />
-      <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+    <>
+      <style jsx global>{`
+        .main-container::-webkit-scrollbar {
+          display: none;
+        }
+        body,
+        html {
+          overflow: hidden;
+        }
+      `}</style>
 
-      {/* Main Content */}
-      <main
-        className="
-          ml-0 md:ml-[318px]
-          mt-20
-          h-[calc(100vh-80px)]
-          overflow-y-auto overflow-x-hidden
-          px-3 sm:px-4 md:px-6 lg:px-8
-          pt-6 pb-6
-          bg-white
-          box-border
-        "
-      >
-        <AgentJournal searchQuery={searchQuery} />
-      </main>
-    </div>
+      <div className="min-h-screen bg-white overflow-hidden">
+        <Sidebar />
+        <Header searchQuery={searchQuery} onSearchChange={setSearchQuery} />
+
+        <main
+          className="ml-0 md:ml-[318px] mt-[64px] md:mt-[72px] lg:mt-[80px] h-[calc(100vh-64px)] md:h-[calc(100vh-72px)] lg:h-[calc(100vh-80px)] overflow-hidden bg-white main-container"
+          style={{
+            scrollbarWidth: "none",
+            msOverflowStyle: "none",
+          }}
+        >
+          <AgentJournal searchQuery={searchQuery} />
+        </main>
+      </div>
+    </>
   );
 }

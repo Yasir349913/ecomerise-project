@@ -1,253 +1,127 @@
 "use client";
 import React from "react";
-import { Package, Target, DollarSign } from "lucide-react";
+import {
+  TrendingUp,
+  TrendingDown,
+  BarChart3,
+  Target,
+  AlertTriangle,
+} from "lucide-react";
 
-const Cards = ({ searchQuery = "" }) => {
+const Cards = () => {
   const cardsData = [
     {
       id: 1,
-      type: "Inventory",
-      icon: Package,
-      bgColor: "#EBFFF9",
-      textColor: "text-green-800",
-      iconColor: "text-green-600",
-      title: "3 products will be out of stock in 2 days",
-      subtitle: "42 more days",
-      buttonText: "Update Products",
-      images: ["/images/imgs1.jpg", "/images/imgs2.jpg", "/images/imgs3.jpg"],
+      title: "Blended ROAS",
+      value: "5.3x",
+      change: "+44%",
+      changeType: "positive",
+      subtitle: "vs. last quarter",
+      icon: TrendingUp,
+      chartData: [40, 45, 35, 50, 55, 60, 65, 70, 75, 80, 85, 90],
+      chartColor: "#5F44FA",
     },
     {
       id: 2,
-      type: "Ads",
+      title: "Blended CPA",
+      value: "$27.50",
+      change: "-31%",
+      changeType: "positive",
+      subtitle: "per customer acquisition",
       icon: Target,
-      bgColor: "#F8EAFF",
-      textColor: "text-purple-800",
-      iconColor: "text-purple-600",
-      title: "2 underperforming ads detected in the last 7 days",
-      subtitle: "15 mins ago",
-      buttonText: "Check Ads",
-      images: ["/images/imgs4.jpg", "/images/imgs5.jpg"],
+      chartData: [60, 55, 65, 50, 45, 40, 35, 30, 25, 20, 15, 10],
+      chartColor: "#5F44FA",
     },
     {
       id: 3,
-      type: "Pricing",
-      icon: DollarSign,
-      bgColor: "#E0F6FF",
-      textColor: "text-blue-800",
-      iconColor: "text-blue-600",
-      title: "4 listings with mismatched prices across channels",
-      subtitle: "1 hour ago",
-      buttonText: "Check Products",
-      images: ["/images/imgs6.jpg", "/images/imgs7.jpg", "/images/imgs8.png"],
+      title: "LTV",
+      value: "$187.35",
+      change: "+28%",
+      changeType: "positive",
+      subtitle: "lifetime value",
+      icon: BarChart3,
+      chartData: [30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85],
+      chartColor: "#5F44FA",
     },
   ];
 
-  // 🔎 filter by type/title/subtitle (case-insensitive)
-  const q = searchQuery.trim().toLowerCase();
-  const filteredCards = q
-    ? cardsData.filter(
-        (c) =>
-          c.type.toLowerCase().includes(q) ||
-          c.title.toLowerCase().includes(q) ||
-          c.subtitle.toLowerCase().includes(q)
-      )
-    : cardsData;
+  // Mini chart component
+  const MiniChart = ({ data, color }) => {
+    const max = Math.max(...data);
+    const min = Math.min(...data);
 
-  const badgeConfig = {
-    1: { soft: "rgba(46, 214, 163, 0.15)", width: 128 },
-    2: { soft: "rgba(171, 84, 219, 0.15)", width: 87 },
-    3: { soft: "rgba(88, 205, 255, 0.15)", width: 110 },
+    return (
+      <div className="flex items-end space-x-1 h-12 w-20">
+        {data.map((value, index) => {
+          const height = ((value - min) / (max - min)) * 100;
+          return (
+            <div
+              key={index}
+              className="flex-1 rounded-t"
+              style={{
+                height: `${Math.max(height, 10)}%`,
+                backgroundColor: color,
+                opacity: index < data.length - 4 ? 0.4 : 1,
+              }}
+            />
+          );
+        })}
+      </div>
+    );
   };
-
-  const getCardStyles = (card) => ({
-    borderRadius: "24px",
-    backgroundColor: card.bgColor,
-    padding: "16px 20px",
-    position: "relative",
-    display: "flex",
-    flexDirection: "column",
-    gap: "14px",
-    minWidth: 0,
-  });
 
   return (
     <section className="w-full">
-      {/* Title */}
-      <div className="mb-4 sm:mb-6">
-        <h1
-          style={{
-            fontFamily: "Plus Jakarta Sans, sans-serif",
-            fontSize: "28px",
-            fontWeight: 700,
-            lineHeight: "100%",
-            color: "#464255",
-            margin: "0 0 6px 0",
-          }}
-          className="sm:text-[32px]"
-        >
-          Anomaly Detector
-        </h1>
-        <p
-          style={{
-            fontFamily: "Plus Jakarta Sans, sans-serif",
-            fontSize: "14px",
-            fontWeight: 400,
-            lineHeight: "100%",
-            color: "#464255",
-            margin: 0,
-          }}
-          className="sm:text-[16px]"
-        >
-          Helps you detect and fix issues in your store.
-        </p>
-      </div>
-
-      {/* Search info badge (optional) */}
-      {q && (
-        <div className="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
-          {filteredCards.length} result{filteredCards.length !== 1 ? "s" : ""}{" "}
-          for “{searchQuery}”
-        </div>
-      )}
-
-      {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredCards.map((card) => {
+      {/* Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {cardsData.map((card) => {
           const IconComponent = card.icon;
-          const badge = badgeConfig[card.id];
           return (
-            <div key={card.id} style={getCardStyles(card)} className="h-full">
-              {/* Top badge */}
-              <div
-                className="flex items-center"
-                style={{
-                  width: `min(70%, ${badge.width}px)`,
-                  height: "34px",
-                  borderRadius: "14px",
-                  backgroundColor: badge.soft,
-                  padding: "8px 26px 8px 16px",
-                  gap: "14px",
-                }}
-              >
-                <IconComponent
-                  className={`w-4 h-4 ${card.iconColor} flex-shrink-0`}
-                />
-                <span
-                  className={`text-xs font-medium ${card.textColor} whitespace-nowrap`}
-                >
-                  {card.type}
-                </span>
-              </div>
-
-              {/* Title + subtitle */}
-              <div
-                className={card.id === 2 ? "flex-1" : ""}
-                style={{
-                  width: "100%",
-                  minHeight: "48px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "4px",
-                }}
-              >
-                <h3
-                  style={{
-                    fontFamily: "Plus Jakarta Sans, sans-serif",
-                    fontSize: "14px",
-                    fontWeight: 700,
-                    lineHeight: "120%",
-                    color: "#464255",
-                    margin: 0,
-                  }}
-                  className="sm:text-[14px]"
-                >
-                  {card.title}
-                </h3>
-                <p
-                  style={{
-                    fontFamily: "Plus Jakarta Sans, sans-serif",
-                    fontSize: "13px",
-                    fontWeight: 600,
-                    lineHeight: "22px",
-                    color: "#A3A3A3",
-                    margin: 0,
-                  }}
-                  className="sm:text-[14px] sm:leading-[26px]"
-                >
-                  {card.subtitle}
-                </p>
-              </div>
-
-              {/* Images + Button */}
-              <div className="flex items-center justify-between gap-3 flex-wrap">
-                <div className="flex items-center gap-2">
-                  {card.images.map((image, index) => (
-                    <div
-                      key={index}
-                      className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0"
+            <div
+              key={card.id}
+              className="bg-white rounded-2xl border border-gray-100 p-6 hover:shadow-lg transition-all duration-300 hover:border-gray-200"
+            >
+              {/* Card Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-sm font-medium text-gray-600">
+                      {card.title}
+                    </span>
+                    <span
+                      className={`px-2 py-1 rounded text-xs font-medium ${
+                        card.changeType === "positive"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
                     >
-                      <img
-                        src={image}
-                        alt={`${card.type} ${index + 1}`}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          const fallback = [
-                            "bg-gray-300",
-                            "bg-gray-400",
-                            "bg-gray-500",
-                          ];
-                          e.currentTarget.style.display = "none";
-                          const parent = e.currentTarget.parentNode;
-                          parent.className = `w-9 h-9 sm:w-10 sm:h-10 rounded-lg ${
-                            fallback[index % fallback.length]
-                          } flex items-center justify-center`;
-                          parent.innerHTML =
-                            '<div class="w-6 h-6 bg-white rounded opacity-50"></div>';
-                        }}
-                      />
-                    </div>
-                  ))}
+                      {card.change}
+                    </span>
+                  </div>
+                  <div className="text-3xl font-bold text-gray-900 mb-1">
+                    {card.value}
+                  </div>
+                  <p className="text-sm text-gray-500">{card.subtitle}</p>
                 </div>
+              </div>
 
-                <button
-                  className="transition-all"
-                  style={{
-                    minWidth: "120px",
-                    height: "37px",
-                    borderRadius: "83px",
-                    backgroundColor: "#1457DC",
-                    color: "white",
-                    padding: "8px 16px",
-                    border: "none",
-                    fontSize: "13px",
-                    fontWeight: 500,
-                    cursor: "pointer",
-                    whiteSpace: "nowrap",
-                    flexShrink: 0,
-                  }}
-                  onMouseOver={(e) => {
-                    const h = { 1: "#0f46a6", 2: "#7c3aed", 3: "#2563eb" };
-                    e.currentTarget.style.backgroundColor = h[card.id];
-                  }}
-                  onMouseOut={(e) => {
-                    e.currentTarget.style.backgroundColor = "#1457DC";
-                  }}
-                >
-                  {card.buttonText}
-                </button>
+              {/* Mini Chart */}
+              <div className="flex items-center justify-between">
+                <MiniChart data={card.chartData} color={card.chartColor} />
+
+                {/* Icon and additional info */}
+                <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-1 text-xs text-gray-500">
+                    <IconComponent className="w-4 h-4" />
+                    {card.id === 1 && <span>Best Performing Ads</span>}
+                    {card.id === 2 && <span>Best Performing Channels</span>}
+                    {card.id === 3 && <span>Ad Waste Ranked by Source</span>}
+                  </div>
+                </div>
               </div>
             </div>
           );
         })}
-
-        {/* Empty state */}
-        {filteredCards.length === 0 && (
-          <div className="col-span-1 md:col-span-2 lg:col-span-3">
-            <div className="rounded-xl border border-gray-200 p-8 text-center text-gray-600">
-              No cards match “{searchQuery}”.
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );

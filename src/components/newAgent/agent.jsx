@@ -23,24 +23,20 @@ const CreateNewAgent = () => {
     {
       id: 1,
       name: "Customer support agent",
-      color: "bg-purple-100 text-purple-700",
     },
     {
       id: 2,
       name: "Anomaly Detector",
-      color: "bg-green-100 text-green-700",
       active: true,
     },
-    { id: 3, name: "Custom agent", color: "bg-green-100 text-green-700" },
+    { id: 3, name: "Custom agent" },
     {
       id: 4,
       name: "Friday conversation agent",
-      color: "bg-green-100 text-green-700",
     },
     {
       id: 5,
       name: "Marketing Performance Agent",
-      color: "bg-gray-100 text-gray-700",
     },
   ];
 
@@ -60,154 +56,172 @@ const CreateNewAgent = () => {
 
   const getCharacterStyles = (character) => {
     const isSelected = selectedCharacter === character.name;
-    const isCustomerSupport = character.name === "Customer support agent";
-    const isMarketing = character.name === "Marketing Performance Agent";
 
-    let bgColor, textColor;
     if (isSelected) {
-      bgColor = "#10b981"; // teal-500
-      textColor = "white";
-    } else if (isCustomerSupport) {
-      bgColor = "#f3e8ff"; // purple-100
-      textColor = "#7c3aed"; // purple-600
-    } else if (isMarketing) {
-      bgColor = "#dcfce7"; // green-100
-      textColor = "#6b7280"; // gray-500/600
+      return { backgroundColor: "#5F44FA", color: "white" };
     } else {
-      bgColor = "#dcfce7"; // green-100
-      textColor = "#16a34a"; // green-600
+      return { backgroundColor: "white", color: "#374151" };
     }
-    return { backgroundColor: bgColor, color: textColor };
   };
 
   return (
-    <div className="w-full mx-auto px-4 sm:px-6 md:px-0 max-w-[600px] md:max-w-[650px] lg:max-w-[700px]">
-      {/* Header */}
-      <div className="mb-8 sm:mb-10 text-left">
-        <h1 className="font-['Plus_Jakarta_Sans',sans-serif] text-[28px] sm:text-[32px] md:text-[36px] lg:text-[40px] font-bold leading-none text-[#464255] mb-3 sm:mb-4">
-          Create New Agent
-        </h1>
-        <p className="font-['Plus_Jakarta_Sans',sans-serif] text-sm sm:text-base md:text-lg leading-none text-[#464255] m-0">
-          Helps you to create a new agent for your work
-        </p>
-      </div>
+    <div className="w-full h-full overflow-hidden px-8 sm:px-12 md:px-16 lg:px-20">
+      <style jsx>{`
+        .agent-content::-webkit-scrollbar {
+          display: none;
+        }
+        .scrollable-area::-webkit-scrollbar {
+          display: none;
+        }
+      `}</style>
 
-      {/* Card */}
-      <div className="w-full rounded-[25px] bg-[#F7F7F7] p-6 sm:p-8 md:p-10 lg:p-12 box-border">
-        {/* Avatar preview */}
-        <div className="flex justify-center mb-8 sm:mb-10">
-          <div className="w-[110px] h-[110px] sm:w-[120px] sm:h-[120px] md:w-[130px] md:h-[130px] lg:w-[140px] lg:h-[140px] bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
-            {avatars[selectedAvatar] ? (
-              <img
-                src={avatars[selectedAvatar].image}
-                alt="Selected avatar"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src =
-                    "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Crect width='140' height='140' fill='%23e5e7eb'/%3E%3Ctext x='70' y='78' text-anchor='middle' fill='%239ca3af' font-family='Arial' font-size='22'%3EIMG%3C/text%3E%3C/svg%3E";
+      <div className="h-full flex flex-col">
+        {/* Card - White background with internal scrolling */}
+        <div
+          className="flex-1 min-h-0 rounded-[25px] bg-white border border-gray-100 shadow-sm overflow-hidden"
+          style={{
+            boxShadow:
+              "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+          }}
+        >
+          <div className="h-full flex flex-col">
+            {/* Scrollable content area - ALL content inside */}
+            <div
+              className="flex-1 min-h-0 overflow-y-auto px-4 sm:px-6 scrollable-area agent-content"
+              style={{
+                scrollbarWidth: "none",
+                msOverflowStyle: "none",
+              }}
+            >
+              <div className="space-y-4 sm:space-y-5 py-4">
+                {/* Avatar preview */}
+                <div className="flex justify-center">
+                  <div className="w-[70px] h-[70px] sm:w-[80px] sm:h-[80px] bg-gray-100 rounded-full flex items-center justify-center overflow-hidden">
+                    {avatars[selectedAvatar] ? (
+                      <img
+                        src={avatars[selectedAvatar].image}
+                        alt="Selected avatar"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.src =
+                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80' viewBox='0 0 80 80'%3E%3Crect width='80' height='80' fill='%23e5e7eb'/%3E%3Ctext x='40' y='46' text-anchor='middle' fill='%239ca3af' font-family='Arial' font-size='14'%3EIMG%3C/text%3E%3C/svg%3E";
+                        }}
+                      />
+                    ) : (
+                      <User className="w-[35px] h-[35px] sm:w-[40px] sm:h-[40px] text-gray-400" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Name */}
+                <div>
+                  <label className="block font-['Plus_Jakarta_Sans',sans-serif] text-xs sm:text-sm font-bold leading-none text-[#464255] mb-2">
+                    Agent Name
+                  </label>
+                  <input
+                    type="text"
+                    value={agentName}
+                    onChange={(e) => setAgentName(e.target.value)}
+                    placeholder="Agent Name"
+                    className="w-full h-10 sm:h-12 rounded-full bg-gray-50 border border-gray-200 outline-none px-4 sm:px-5 box-border font-['Plus_Jakarta_Sans',sans-serif] text-xs sm:text-sm text-gray-700 focus:ring-2 focus:ring-[#5F44FA] focus:border-[#5F44FA] transition-all duration-200"
+                  />
+                </div>
+
+                {/* Avatars */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-[#464255] mb-2 sm:mb-3 font-['Plus_Jakarta_Sans',sans-serif]">
+                    Agent Avatar
+                  </label>
+                  <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-7 gap-2">
+                    {avatars.map((avatar) => (
+                      <button
+                        key={avatar.id}
+                        onClick={() => setSelectedAvatar(avatar.id)}
+                        className={`rounded-full overflow-hidden flex items-center justify-center cursor-pointer transition-all duration-200 box-border hover:scale-105
+                          ${
+                            selectedAvatar === avatar.id
+                              ? "ring-2 ring-[#5F44FA] ring-offset-1 ring-offset-white"
+                              : ""
+                          }
+                          ${avatar.bg}
+                        `}
+                        style={{ width: "40px", height: "40px" }}
+                        aria-label={`Select avatar ${avatar.id}`}
+                      >
+                        <img
+                          src={avatar.image}
+                          alt=""
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = "none";
+                          }}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Characters */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-[#464255] mb-2 sm:mb-3 font-['Plus_Jakarta_Sans',sans-serif]">
+                    Agent Character
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {characters.map((character) => (
+                      <button
+                        key={character.id}
+                        onClick={() => setSelectedCharacter(character.name)}
+                        style={getCharacterStyles(character)}
+                        className="px-3 sm:px-4 py-2 sm:py-2.5 rounded-full text-xs sm:text-sm font-medium border border-gray-200 cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] hover:scale-105 text-left"
+                      >
+                        {character.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Extra content to test scrolling */}
+                <div>
+                  <label className="block text-xs sm:text-sm font-bold text-[#464255] mb-2 font-['Plus_Jakarta_Sans',sans-serif]">
+                    Additional Settings
+                  </label>
+                  <div className="space-y-2">
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-600">
+                        Agent will be created with default settings
+                      </p>
+                    </div>
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs text-gray-600">
+                        You can modify these settings after creation
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions - Fixed at bottom */}
+            <div className="flex-shrink-0 flex flex-col md:flex-row gap-2 sm:gap-3 p-4 sm:p-6 pt-3 border-t border-gray-100 px-8 sm:px-12">
+              <button
+                onClick={handleCreateAgent}
+                disabled={!agentName.trim()}
+                style={{
+                  backgroundColor: !agentName.trim() ? "#9ca3af" : "#5F44FA",
                 }}
-              />
-            ) : (
-              <User className="w-[56px] h-[56px] sm:w-[60px] sm:h-[60px] md:w-[65px] md:h-[65px] lg:w-[70px] lg:h-[70px] text-gray-400" />
-            )}
-          </div>
-        </div>
-
-        {/* Name */}
-        <div className="mb-6 sm:mb-8">
-          <label className="block font-['Plus_Jakarta_Sans',sans-serif] text-sm sm:text-base md:text-lg font-bold leading-none text-[#464255] mb-2.5 sm:mb-3">
-            Agent Name
-          </label>
-          <input
-            type="text"
-            value={agentName}
-            onChange={(e) => setAgentName(e.target.value)}
-            placeholder="Agent Name"
-            className="w-full h-12 sm:h-14 md:h-16 rounded-full bg-white border-none outline-none px-5 sm:px-6 md:px-7 box-border font-['Plus_Jakarta_Sans',sans-serif] text-sm md:text-base text-gray-700 focus:ring-2 focus:ring-blue-500 transition-all duration-200"
-          />
-        </div>
-
-        {/* Avatars (responsive grid) */}
-        <div className="mb-6 sm:mb-8">
-          <label className="block text-sm sm:text-base md:text-lg font-bold text-[#464255] mb-3.5 sm:mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
-            Agent Avatar
-          </label>
-          <div className="grid grid-cols-4 xs:grid-cols-5 sm:grid-cols-6 md:grid-cols-7 gap-3 sm:gap-4">
-            {avatars.map((avatar) => (
-              <button
-                key={avatar.id}
-                onClick={() => setSelectedAvatar(avatar.id)}
-                className={`rounded-full overflow-hidden flex items-center justify-center cursor-pointer transition-all duration-200 box-border hover:scale-105
-                  ${
-                    selectedAvatar === avatar.id
-                      ? "ring-2 ring-blue-500 ring-offset-2 ring-offset-[#F7F7F7]"
-                      : ""
-                  }
-                  ${avatar.bg}
-                `}
-                style={{ width: "64px", height: "64px" }}
-                aria-label={`Select avatar ${avatar.id}`}
+                className="max-w-[200px] mx-auto md:mx-0 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed text-white px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-sm font-medium text-xs sm:text-sm transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] focus:ring-2 focus:ring-[#5F44FA] focus:ring-offset-1"
               >
-                <img
-                  src={avatar.image}
-                  alt=""
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = "none";
-                  }}
-                />
+                Create Agent
               </button>
-            ))}
-          </div>
-        </div>
 
-        {/* Characters (responsive pills) */}
-        <div className="mb-8 sm:mb-10">
-          <label className="block text-sm sm:text-base md:text-lg font-bold text-[#464255] mb-3.5 sm:mb-4 font-['Plus_Jakarta_Sans',sans-serif]">
-            Agent Character
-          </label>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-            {characters.map((character) => (
               <button
-                key={character.id}
-                onClick={() => setSelectedCharacter(character.name)}
-                style={getCharacterStyles(character)}
-                className="px-4 sm:px-5 md:px-6 py-2.5 sm:py-3 md:py-4 rounded-full text-sm md:text-base font-medium border-none cursor-pointer transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] hover:scale-105"
+                onClick={handleResetChanges}
+                className="max-w-[200px] mx-auto md:mx-0 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 sm:px-4 py-2 sm:py-2.5 rounded-lg shadow-sm font-medium text-xs sm:text-sm transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif] focus:ring-2 focus:ring-gray-300 focus:ring-offset-1"
               >
-                {character.name}
+                Reset Changes
               </button>
-            ))}
+            </div>
           </div>
-        </div>
-
-        {/* Actions — slimmer buttons */}
-        <div className="flex flex-col md:flex-row gap-3 sm:gap-4">
-          <button
-            onClick={handleCreateAgent}
-            disabled={!agentName.trim()}
-            className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 disabled:cursor-not-allowed
-                       text-white px-4 sm:px-5 md:px-5
-                       py-2.5 sm:py-3 md:py-3.5
-                       rounded-lg shadow-sm
-                       font-medium text-sm md:text-base
-                       transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif]
-                       focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
-          >
-            Create Agent
-          </button>
-
-          <button
-            onClick={handleResetChanges}
-            className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700
-                       px-4 sm:px-5 md:px-5
-                       py-2.5 sm:py-3 md:py-3.5
-                       rounded-lg shadow-sm
-                       font-medium text-sm md:text-base
-                       transition-all duration-200 font-['Plus_Jakarta_Sans',sans-serif]
-                       focus:ring-2 focus:ring-gray-300 focus:ring-offset-1"
-          >
-            Reset Changes
-          </button>
         </div>
       </div>
     </div>
