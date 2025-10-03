@@ -35,8 +35,7 @@ const Sidebar = () => {
       setExpandedMenus((prev) => ({ ...prev, anomalyDetector: true }));
     } else if (
       pathname === "/analytics-main" ||
-      pathname === "/analytics-agent-journal" ||
-      pathname === "/newAgent"
+      pathname === "/analytics-agent-journal"
     ) {
       setExpandedMenus((prev) => ({ ...prev, analyticsAgent: true }));
     }
@@ -91,7 +90,7 @@ const Sidebar = () => {
         {
           icon: FileText,
           label: "Main",
-          href: "/analytics-main",
+          href: "/",
         },
         {
           icon: FileText,
@@ -300,7 +299,7 @@ const Sidebar = () => {
                         const subActive = isActive(submenu.href);
                         const submenuClass = subActive
                           ? "flex items-center px-3 md:px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 bg-[#5F44FA] text-white shadow-sm ml-4"
-                          : "flex items-center px-6 md:px-8 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 ml-4 border-l-2 border-gray-200";
+                          : "flex items-center px-6 md:px-8 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 ml-4";
 
                         return (
                           <li key={subIndex}>

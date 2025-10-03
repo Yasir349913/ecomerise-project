@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Send, MoreHorizontal, Search, Download } from "lucide-react";
 
 const Chat = ({ searchQuery = "" }) => {
@@ -35,11 +35,49 @@ const Chat = ({ searchQuery = "" }) => {
     },
   ]);
 
+  const [isBotTyping, setIsBotTyping] = useState(false);
+  const [typingUser, setTypingUser] = useState(null);
+
+  const botTypingTimerRef = useRef(null);
+  const inputTypingTimerRef = useRef(null);
+  const scrollRef = useRef(null);
+  const lastMessageRef = useRef(null);
+
   useEffect(() => {
     fetch("/data/faq.json")
       .then((r) => r.json())
       .then((data) => setFaqs(Array.isArray(data) ? data : []))
       .catch(() => setFaqs([]));
+  }, []);
+
+  useEffect(() => {
+    const t = setTimeout(() => {
+      if (lastMessageRef.current && scrollRef.current) {
+        const container = scrollRef.current;
+        const element = lastMessageRef.current;
+
+        const elementRect = element.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+
+        // Calculate scroll position to place message at 60% from top (below center)
+        const offset =
+          elementRect.top - containerRect.top - containerRect.height * 0.4;
+
+        container.scrollBy({
+          top: offset,
+          behavior: "smooth",
+        });
+      }
+    }, 150);
+    return () => clearTimeout(t);
+  }, [messages, isBotTyping]);
+
+  useEffect(() => {
+    return () => {
+      if (botTypingTimerRef.current) clearTimeout(botTypingTimerRef.current);
+      if (inputTypingTimerRef.current)
+        clearTimeout(inputTypingTimerRef.current);
+    };
   }, []);
 
   const norm = (s) =>
@@ -56,7 +94,6 @@ const Chat = ({ searchQuery = "" }) => {
     return map;
   }, [faqs]);
 
-  // Filter messages based on search query
   const filteredMessages = useMemo(() => {
     if (!searchQuery.trim()) {
       return messages;
@@ -66,7 +103,6 @@ const Chat = ({ searchQuery = "" }) => {
     return messages.filter((msg) => msg.message.toLowerCase().includes(query));
   }, [messages, searchQuery]);
 
-  // Function to highlight search text in message
   const highlightText = (text, searchQuery) => {
     if (!searchQuery.trim()) {
       return text;
@@ -109,26 +145,57 @@ const Chat = ({ searchQuery = "" }) => {
       isBot: false,
     };
 
-    const maybeAnswer = faqMap[norm(text)];
-    const botReply = {
-      id: `bot-${Date.now() + 1}`,
-      user: "Ava",
-      avatar: "/images/user-avatar.png",
-      message:
-        maybeAnswer ||
-        "I didn't find an exact match for that. Try rephrasing, or ask me another question.",
-      timestamp: "just now",
-      isBot: true,
-    };
-
-    setMessages((prev) => [...prev, newUserMsg, botReply]);
+    setMessages((prev) => [...prev, newUserMsg]);
     setMessage("");
+
+    const maybeAnswer = faqMap[norm(text)];
+    const replyText =
+      maybeAnswer ||
+      "I didn't find an exact match for that. Try rephrasing, or ask me another question.";
+
+    setTypingUser("Ava");
+    setIsBotTyping(true);
+
+    if (botTypingTimerRef.current) clearTimeout(botTypingTimerRef.current);
+
+    const delay = 3000;
+    botTypingTimerRef.current = setTimeout(() => {
+      const botReply = {
+        id: `bot-${Date.now() + 1}`,
+        user: "Ava",
+        avatar: "/images/user-avatar.png",
+        message: replyText,
+        timestamp: "just now",
+        isBot: true,
+      };
+
+      setMessages((prev) => [...prev, botReply]);
+      setIsBotTyping(false);
+      setTypingUser(null);
+      botTypingTimerRef.current = null;
+    }, delay);
   };
 
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
+    }
+  };
+
+  const handleInputChange = (e) => {
+    setMessage(e.target.value);
+
+    if (!isBotTyping && e.target.value.trim()) {
+      setTypingUser("Dev");
+      if (inputTypingTimerRef.current)
+        clearTimeout(inputTypingTimerRef.current);
+      inputTypingTimerRef.current = setTimeout(() => {
+        setTypingUser(null);
+        inputTypingTimerRef.current = null;
+      }, 1200);
+    } else if (!e.target.value.trim()) {
+      setTypingUser(null);
     }
   };
 
@@ -140,6 +207,19 @@ const Chat = ({ searchQuery = "" }) => {
         }
         .main-container::-webkit-scrollbar {
           display: none;
+        }
+
+        @keyframes bounce {
+          0%,
+          80%,
+          100% {
+            transform: translateY(0);
+            opacity: 0.6;
+          }
+          40% {
+            transform: translateY(-6px);
+            opacity: 1;
+          }
         }
       `}</style>
       <div
@@ -165,10 +245,14 @@ const Chat = ({ searchQuery = "" }) => {
             </div>
             <div>
               <span className="font-semibold text-gray-900">Ava</span>
-              <div className="flex items-center gap-1 text-xs text-green-600">
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span>is typing</span>
-              </div>
+              {typingUser ? (
+                <div className="flex items-center gap-1 text-xs text-green-600">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>{typingUser} is typing</span>
+                </div>
+              ) : (
+                <div className="text-xs text-gray-500">online</div>
+              )}
             </div>
           </div>
 
@@ -195,6 +279,7 @@ const Chat = ({ searchQuery = "" }) => {
 
         {/* Messages Area */}
         <div
+          ref={scrollRef}
           className="flex-1 overflow-y-auto p-4 space-y-4 chat-messages"
           style={{
             scrollbarWidth: "none",
@@ -216,79 +301,134 @@ const Chat = ({ searchQuery = "" }) => {
                 <div className="flex-1 border-t border-gray-200"></div>
               </div>
 
-              {filteredMessages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex gap-3 ${msg.isBot ? "" : "justify-end"}`}
-                >
-                  {msg.isBot && (
-                    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
-                      <img
-                        src={msg.avatar}
-                        alt={msg.user}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.src =
-                            "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%235F44FA'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='white' font-family='Arial' font-size='14'%3EA%3C/text%3E%3C/svg%3E";
+              {filteredMessages.map((msg, index) => {
+                const isLast = index === filteredMessages.length - 1;
+                return (
+                  <div
+                    key={msg.id}
+                    ref={isLast ? lastMessageRef : null}
+                    className={`message-item flex gap-3 ${
+                      msg.isBot ? "" : "justify-end"
+                    }`}
+                  >
+                    {msg.isBot && (
+                      <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm flex-shrink-0">
+                        <img
+                          src={msg.avatar}
+                          alt={msg.user}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.src =
+                              "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='32' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%235F44FA'/%3E%3Ctext x='16' y='20' text-anchor='middle' fill='white' font-family='Arial' font-size='14'%3EA%3C/text%3E%3C/svg%3E";
+                          }}
+                        />
+                      </div>
+                    )}
+
+                    <div
+                      className={`max-w-[80%] ${
+                        msg.isBot ? "" : "flex flex-col items-end"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        {msg.isBot && (
+                          <span className="text-sm font-medium text-gray-900">
+                            {msg.user}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-500">
+                          {msg.timestamp}
+                        </span>
+                        {!msg.isBot && (
+                          <span className="text-sm font-medium text-gray-900">
+                            {msg.user}
+                          </span>
+                        )}
+                        {!msg.isBot && (
+                          <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                            <img
+                              src="/images/user2.jpg"
+                              alt="Dev"
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                e.currentTarget.src =
+                                  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235F44FA'/%3E%3Ctext x='12' y='15' text-anchor='middle' fill='white' font-family='Arial' font-size='10'%3ED%3C/text%3E%3C/svg%3E";
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+
+                      <div
+                        className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
+                          msg.isBot
+                            ? "bg-gray-50 text-gray-900 border border-gray-100"
+                            : "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
+                        }`}
+                        style={
+                          !msg.isBot
+                            ? {
+                                background:
+                                  "linear-gradient(135deg, #5F44FA 0%, #7C3AED 100%)",
+                              }
+                            : {}
+                        }
+                      >
+                        {highlightText(msg.message, searchQuery)}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Typing indicator - Only 3 dots, no avatar */}
+              {isBotTyping && typingUser === "Ava" && (
+                <div className="message-item flex gap-3" ref={lastMessageRef}>
+                  <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed bg-gray-50 text-gray-900 border border-gray-100">
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 6,
+                        alignItems: "flex-end",
+                      }}
+                    >
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          backgroundColor: "#9CA3AF",
+                          display: "inline-block",
+                          animation: "bounce 1s infinite",
+                          opacity: 0.6,
+                        }}
+                      />
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          backgroundColor: "#9CA3AF",
+                          display: "inline-block",
+                          animation: "bounce 1s .15s infinite",
+                          opacity: 0.6,
+                        }}
+                      />
+                      <span
+                        style={{
+                          width: 6,
+                          height: 6,
+                          borderRadius: "50%",
+                          backgroundColor: "#9CA3AF",
+                          display: "inline-block",
+                          animation: "bounce 1s .3s infinite",
+                          opacity: 0.6,
                         }}
                       />
                     </div>
-                  )}
-
-                  <div
-                    className={`max-w-[80%] ${
-                      msg.isBot ? "" : "flex flex-col items-end"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-1">
-                      {msg.isBot && (
-                        <span className="text-sm font-medium text-gray-900">
-                          {msg.user}
-                        </span>
-                      )}
-                      <span className="text-xs text-gray-500">
-                        {msg.timestamp}
-                      </span>
-                      {!msg.isBot && (
-                        <span className="text-sm font-medium text-gray-900">
-                          {msg.user}
-                        </span>
-                      )}
-                      {!msg.isBot && (
-                        <div className="w-6 h-6 rounded-full overflow-hidden border-2 border-white shadow-sm">
-                          <img
-                            src="/images/user2.jpg"
-                            alt="Dev"
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              e.currentTarget.src =
-                                "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' fill='%235F44FA'/%3E%3Ctext x='12' y='15' text-anchor='middle' fill='white' font-family='Arial' font-size='10'%3ED%3C/text%3E%3C/svg%3E";
-                            }}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    <div
-                      className={`px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-                        msg.isBot
-                          ? "bg-gray-50 text-gray-900 border border-gray-100"
-                          : "bg-gradient-to-r from-purple-500 to-blue-500 text-white"
-                      }`}
-                      style={
-                        !msg.isBot
-                          ? {
-                              background:
-                                "linear-gradient(135deg, #5F44FA 0%, #7C3AED 100%)",
-                            }
-                          : {}
-                      }
-                    >
-                      {highlightText(msg.message, searchQuery)}
-                    </div>
                   </div>
                 </div>
-              ))}
+              )}
 
               {/* Suggested responses */}
               <div className="flex gap-2 mt-4">
@@ -313,7 +453,7 @@ const Chat = ({ searchQuery = "" }) => {
               <input
                 type="text"
                 value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                onChange={handleInputChange}
                 onKeyPress={handleKeyPress}
                 placeholder="Type here..."
                 className="w-full px-4 py-3 pr-12 border border-gray-200 rounded-2xl bg-white text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
