@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import { Send, MoreHorizontal, Search, Download } from "lucide-react";
 
 const Chat = ({ searchQuery = "" }) => {
@@ -38,11 +39,13 @@ const Chat = ({ searchQuery = "" }) => {
   const [isBotTyping, setIsBotTyping] = useState(false);
   const [typingUser, setTypingUser] = useState(null);
 
+  // Refs for timers & scroll
   const botTypingTimerRef = useRef(null);
   const inputTypingTimerRef = useRef(null);
   const scrollRef = useRef(null);
   const lastMessageRef = useRef(null);
 
+  // load FAQs
   useEffect(() => {
     fetch("/data/faq.json")
       .then((r) => r.json())
@@ -50,6 +53,7 @@ const Chat = ({ searchQuery = "" }) => {
       .catch(() => setFaqs([]));
   }, []);
 
+  // scroll behavior
   useEffect(() => {
     const t = setTimeout(() => {
       if (lastMessageRef.current && scrollRef.current) {
@@ -59,7 +63,7 @@ const Chat = ({ searchQuery = "" }) => {
         const elementRect = element.getBoundingClientRect();
         const containerRect = container.getBoundingClientRect();
 
-        // Calculate scroll position to place message at 60% from top (below center)
+        // place message at ~60% from top
         const offset =
           elementRect.top - containerRect.top - containerRect.height * 0.4;
 
@@ -72,11 +76,17 @@ const Chat = ({ searchQuery = "" }) => {
     return () => clearTimeout(t);
   }, [messages, isBotTyping]);
 
+  // cleanup timers on unmount
   useEffect(() => {
     return () => {
-      if (botTypingTimerRef.current) clearTimeout(botTypingTimerRef.current);
-      if (inputTypingTimerRef.current)
+      if (botTypingTimerRef.current) {
+        clearTimeout(botTypingTimerRef.current);
+        botTypingTimerRef.current = null;
+      }
+      if (inputTypingTimerRef.current) {
         clearTimeout(inputTypingTimerRef.current);
+        inputTypingTimerRef.current = null;
+      }
     };
   }, []);
 
@@ -95,46 +105,53 @@ const Chat = ({ searchQuery = "" }) => {
   }, [faqs]);
 
   const filteredMessages = useMemo(() => {
-    if (!searchQuery.trim()) {
-      return messages;
-    }
-
-    const query = searchQuery.toLowerCase();
-    return messages.filter((msg) => msg.message.toLowerCase().includes(query));
+    if (!searchQuery.trim()) return messages;
+    const q = searchQuery.toLowerCase();
+    return messages.filter((m) => m.message.toLowerCase().includes(q));
   }, [messages, searchQuery]);
 
   const highlightText = (text, searchQuery) => {
-    if (!searchQuery.trim()) {
-      return text;
-    }
-
+    if (!searchQuery.trim()) return text;
     const regex = new RegExp(`(${searchQuery})`, "gi");
     const parts = text.split(regex);
-
-    return parts.map((part, index) => {
-      if (part.toLowerCase() === searchQuery.toLowerCase()) {
-        return (
-          <mark
-            key={index}
-            style={{
-              backgroundColor: "#5F44FA",
-              color: "white",
-              padding: "2px 4px",
-              borderRadius: "3px",
-              fontWeight: "500",
-            }}
-          >
-            {part}
-          </mark>
-        );
-      }
-      return part;
-    });
+    return parts.map((part, i) =>
+      part.toLowerCase() === searchQuery.toLowerCase() ? (
+        <mark
+          key={i}
+          style={{
+            backgroundColor: "#5F44FA",
+            color: "white",
+            padding: "2px 4px",
+            borderRadius: "3px",
+            fontWeight: "500",
+          }}
+        >
+          {part}
+        </mark>
+      ) : (
+        part
+      )
+    );
   };
+
+  // typing duration in ms (2.5s by default, change to 2000 or 3000 if you want)
+  const TYPING_DURATION_MS = 2500;
 
   const handleSendMessage = () => {
     const text = message.trim();
     if (!text) return;
+
+    // Clear any pending input-typing timer so it won't later clear typingUser
+    if (inputTypingTimerRef.current) {
+      clearTimeout(inputTypingTimerRef.current);
+      inputTypingTimerRef.current = null;
+    }
+
+    // Clear existing bot timer to avoid overlap
+    if (botTypingTimerRef.current) {
+      clearTimeout(botTypingTimerRef.current);
+      botTypingTimerRef.current = null;
+    }
 
     const newUserMsg = {
       id: `u-${Date.now()}`,
@@ -145,6 +162,7 @@ const Chat = ({ searchQuery = "" }) => {
       isBot: false,
     };
 
+    // append user message quickly
     setMessages((prev) => [...prev, newUserMsg]);
     setMessage("");
 
@@ -153,27 +171,31 @@ const Chat = ({ searchQuery = "" }) => {
       maybeAnswer ||
       "I didn't find an exact match for that. Try rephrasing, or ask me another question.";
 
+    // show bot typing (Ava) immediately
     setTypingUser("Ava");
     setIsBotTyping(true);
 
-    if (botTypingTimerRef.current) clearTimeout(botTypingTimerRef.current);
-
-    const delay = 3000;
+    // schedule reply after exactly TYPING_DURATION_MS
     botTypingTimerRef.current = setTimeout(() => {
-      const botReply = {
-        id: `bot-${Date.now() + 1}`,
-        user: "Ava",
-        avatar: "/images/user-avatar.png",
-        message: replyText,
-        timestamp: "just now",
-        isBot: true,
-      };
+      // flushSync so hiding typing and inserting reply happen together (no visual gap)
+      flushSync(() => {
+        const botReply = {
+          id: `bot-${Date.now() + 1}`,
+          user: "Ava",
+          avatar: "/images/user-avatar.png",
+          message: replyText,
+          timestamp: "just now",
+          isBot: true,
+        };
 
-      setMessages((prev) => [...prev, botReply]);
-      setIsBotTyping(false);
-      setTypingUser(null);
+        setMessages((prev) => [...prev, botReply]);
+        // hide typing as part of same flush
+        setIsBotTyping(false);
+        setTypingUser(null);
+      });
+
       botTypingTimerRef.current = null;
-    }, delay);
+    }, TYPING_DURATION_MS);
   };
 
   const handleKeyPress = (e) => {
@@ -186,16 +208,29 @@ const Chat = ({ searchQuery = "" }) => {
   const handleInputChange = (e) => {
     setMessage(e.target.value);
 
+    // If user is typing, show "Dev is typing" and schedule a timer to hide it.
+    // Defensive: clear old timer first.
+    if (inputTypingTimerRef.current) {
+      clearTimeout(inputTypingTimerRef.current);
+      inputTypingTimerRef.current = null;
+    }
+
     if (!isBotTyping && e.target.value.trim()) {
+      // Only set "Dev" typing if bot is not currently typing
       setTypingUser("Dev");
-      if (inputTypingTimerRef.current)
-        clearTimeout(inputTypingTimerRef.current);
+      // Timer will clear the "Dev" indicator — but only if it's still "Dev"
       inputTypingTimerRef.current = setTimeout(() => {
-        setTypingUser(null);
+        // defensive check: only clear if still "Dev" (don't clear "Ava")
+        setTypingUser((current) => (current === "Dev" ? null : current));
         inputTypingTimerRef.current = null;
       }, 1200);
     } else if (!e.target.value.trim()) {
-      setTypingUser(null);
+      // no input -> hide typing user unless bot is typing
+      setTypingUser((current) => (current === "Dev" ? null : current));
+      if (inputTypingTimerRef.current) {
+        clearTimeout(inputTypingTimerRef.current);
+        inputTypingTimerRef.current = null;
+      }
     }
   };
 
@@ -208,7 +243,6 @@ const Chat = ({ searchQuery = "" }) => {
         .main-container::-webkit-scrollbar {
           display: none;
         }
-
         @keyframes bounce {
           0%,
           80%,
@@ -222,14 +256,15 @@ const Chat = ({ searchQuery = "" }) => {
           }
         }
       `}</style>
+
       <div
         className="overflow-hidden h-full flex flex-col bg-white border border-gray-100 rounded-2xl"
         style={{
           boxShadow:
-            "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+            "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06)",
         }}
       >
-        {/* Chat Header */}
+        {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-white rounded-t-2xl">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white shadow-sm">
@@ -247,7 +282,7 @@ const Chat = ({ searchQuery = "" }) => {
               <span className="font-semibold text-gray-900">Ava</span>
               {typingUser ? (
                 <div className="flex items-center gap-1 text-xs text-green-600">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                   <span>{typingUser} is typing</span>
                 </div>
               ) : (
@@ -269,7 +304,7 @@ const Chat = ({ searchQuery = "" }) => {
           </div>
         </div>
 
-        {/* Search Info Badge */}
+        {/* Search badge */}
         {searchQuery.trim() && (
           <div className="mx-4 mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
             {filteredMessages.length} message
@@ -277,14 +312,11 @@ const Chat = ({ searchQuery = "" }) => {
           </div>
         )}
 
-        {/* Messages Area */}
+        {/* Messages */}
         <div
           ref={scrollRef}
           className="flex-1 overflow-y-auto p-4 space-y-4 chat-messages"
-          style={{
-            scrollbarWidth: "none",
-            msOverflowStyle: "none",
-          }}
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
         >
           {filteredMessages.length === 0 && searchQuery.trim() ? (
             <div className="text-center py-12 text-gray-500 text-sm">
@@ -292,17 +324,16 @@ const Chat = ({ searchQuery = "" }) => {
             </div>
           ) : (
             <>
-              {/* Today divider */}
               <div className="flex items-center justify-center my-6">
-                <div className="flex-1 border-t border-gray-200"></div>
+                <div className="flex-1 border-t border-gray-200" />
                 <span className="px-4 text-xs text-gray-500 bg-white">
                   Today
                 </span>
-                <div className="flex-1 border-t border-gray-200"></div>
+                <div className="flex-1 border-t border-gray-200" />
               </div>
 
-              {filteredMessages.map((msg, index) => {
-                const isLast = index === filteredMessages.length - 1;
+              {filteredMessages.map((msg, idx) => {
+                const isLast = idx === filteredMessages.length - 1;
                 return (
                   <div
                     key={msg.id}
@@ -381,7 +412,7 @@ const Chat = ({ searchQuery = "" }) => {
                 );
               })}
 
-              {/* Typing indicator - Only 3 dots, no avatar */}
+              {/* Typing indicator */}
               {isBotTyping && typingUser === "Ava" && (
                 <div className="message-item flex gap-3" ref={lastMessageRef}>
                   <div className="px-4 py-3 rounded-2xl text-sm leading-relaxed bg-gray-50 text-gray-900 border border-gray-100">
@@ -446,7 +477,7 @@ const Chat = ({ searchQuery = "" }) => {
           )}
         </div>
 
-        {/* Message Input */}
+        {/* Input */}
         <div className="p-4 border-t border-gray-100 bg-white rounded-b-2xl">
           <div className="flex items-center gap-3">
             <div className="flex-1 relative">

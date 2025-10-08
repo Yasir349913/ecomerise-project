@@ -1,14 +1,12 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   FileText,
   Brain,
   Menu,
   X,
-  Home,
-  BarChart3,
   Plus,
   Settings,
   Star,
@@ -16,32 +14,120 @@ import {
   ChevronRight,
 } from "lucide-react";
 
+const SIDEBAR_STORAGE_KEY = "sidebar:lastOpenParent";
+const SIDEBAR_SUPPRESS_KEY = "sidebar:suppressUntil";
+const SUPPRESS_DURATION_MS = 1500;
+
 const Sidebar = () => {
   const pathname = usePathname();
+  const router = useRouter();
 
-  // --- Mobile drawer state ---
+  // Mobile drawer state
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerRef = useRef(null);
 
-  // --- Expandable menu state ---
-  const [expandedMenus, setExpandedMenus] = useState({
-    anomalyDetector: false,
-    analyticsAgent: false,
+  // Expandable menu state - lazy init prefers pathname, then localStorage, then collapsed
+  const [expandedMenus, setExpandedMenus] = useState(() => {
+    // If we can read the pathname synchronously, prefer it
+    try {
+      const p = typeof window !== "undefined" ? window.location.pathname : null;
+      if (p) {
+        if (p.startsWith("/anomaly"))
+          return { anomalyDetector: true, analyticsAgent: false };
+        if (p.startsWith("/analytics"))
+          return { anomalyDetector: false, analyticsAgent: true };
+      }
+    } catch (e) {
+      // ignore
+    }
+
+    // Fallback: try persisted value
+    try {
+      if (typeof window !== "undefined") {
+        const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
+        if (stored === "anomalyDetector")
+          return { anomalyDetector: true, analyticsAgent: false };
+        if (stored === "analyticsAgent")
+          return { anomalyDetector: false, analyticsAgent: true };
+      }
+    } catch (e) {
+      // ignore storage errors
+    }
+
+    // Default: both collapsed
+    return { anomalyDetector: false, analyticsAgent: false };
   });
 
-  // Auto-expand based on current path
-  useEffect(() => {
-    if (pathname === "/anomaly-main" || pathname === "/anomaly-agent-journal") {
-      setExpandedMenus((prev) => ({ ...prev, anomalyDetector: true }));
-    } else if (
-      pathname === "/analytics-main" ||
-      pathname === "/analytics-agent-journal"
-    ) {
-      setExpandedMenus((prev) => ({ ...prev, analyticsAgent: true }));
+  // Helper: persist which parent is open and set state so only that parent is open
+  const persistAndOpenOnly = (menuKey) => {
+    setExpandedMenus(() => {
+      const next = { anomalyDetector: false, analyticsAgent: false };
+      next[menuKey] = true;
+      return next;
+    });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, menuKey);
+      } catch (e) {
+        // ignore
+      }
     }
+  };
+
+  // Helper: collapse all and remove persisted open
+  const clearPersistedOpen = () => {
+    setExpandedMenus({ anomalyDetector: false, analyticsAgent: false });
+
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem(SIDEBAR_STORAGE_KEY);
+      } catch (e) {
+        // ignore
+      }
+    }
+  };
+
+  // Helper: set session suppress so auto-expand effect skips for a short time (survives remount)
+  const setSuppressForShortWhile = () => {
+    if (typeof window === "undefined") return;
+    try {
+      const until = Date.now() + SUPPRESS_DURATION_MS;
+      sessionStorage.setItem(SIDEBAR_SUPPRESS_KEY, String(until));
+    } catch (e) {
+      // ignore
+    }
+  };
+
+  // read whether suppression is active
+  const isSuppressed = () => {
+    if (typeof window === "undefined") return false;
+    try {
+      const s = sessionStorage.getItem(SIDEBAR_SUPPRESS_KEY);
+      if (!s) return false;
+      const until = Number(s);
+      return !Number.isNaN(until) && Date.now() < until;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  // Auto-expand based on current path (prefix matching).
+  // Skip if suppression session key is active.
+  useEffect(() => {
+    if (!pathname) return;
+
+    if (isSuppressed()) return;
+
+    if (pathname.startsWith("/anomaly")) {
+      persistAndOpenOnly("anomalyDetector");
+    } else if (pathname.startsWith("/analytics")) {
+      persistAndOpenOnly("analyticsAgent");
+    }
+    // otherwise keep current (don't override)
   }, [pathname]);
 
-  // Close drawer when route changes
+  // Close drawer when route changes - only for mobile
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
@@ -53,11 +139,29 @@ const Sidebar = () => {
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileOpen]);
 
+  // toggle: open only one parent at a time (or close if clicking open parent)
   const toggleMenu = (menuKey) => {
-    setExpandedMenus((prev) => ({
-      ...prev,
-      [menuKey]: !prev[menuKey],
-    }));
+    setExpandedMenus((prev) => {
+      const isCurrentlyOpen = !!prev[menuKey];
+      if (isCurrentlyOpen) {
+        // close it
+        return { ...prev, [menuKey]: false };
+      } else {
+        // open only this one
+        const next = {};
+        Object.keys(prev).forEach((k) => {
+          next[k] = k === menuKey;
+        });
+        return next;
+      }
+    });
+
+    // persist if opening
+    try {
+      if (typeof window !== "undefined") {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, menuKey);
+      }
+    } catch (e) {}
   };
 
   const menuStructure = [
@@ -66,18 +170,10 @@ const Sidebar = () => {
       icon: "custom",
       iconSrc: "/images/icon1.png",
       label: "Anomaly Detector",
-      href: "/",
+      href: "/anomaly-main",
       submenus: [
-        {
-          icon: FileText,
-          label: "Main",
-          href: "/",
-        },
-        {
-          icon: FileText,
-          label: "Agent Journal",
-          href: "/agentJournal",
-        },
+        { icon: FileText, label: "Main", href: "/" },
+        { icon: FileText, label: "Agent Journal", href: "/agentJournal" },
       ],
     },
     {
@@ -85,18 +181,10 @@ const Sidebar = () => {
       icon: "custom",
       iconSrc: "/images/icon2.png",
       label: "Analytics Agent",
-      href: "/analytics",
+      href: "/analytics-main",
       submenus: [
-        {
-          icon: FileText,
-          label: "Main",
-          href: "/",
-        },
-        {
-          icon: FileText,
-          label: "Agent Journal",
-          href: "/agentJournal",
-        },
+        { icon: FileText, label: "Main", href: "/" },
+        { icon: FileText, label: "Agent Journal", href: "/agentJournal" },
       ],
     },
     {
@@ -111,22 +199,11 @@ const Sidebar = () => {
 
   const bottomMenuItems = [
     { icon: Brain, label: "AI Advisor", href: "/ai-advisor" },
-    {
-      icon: Star,
-      label: "Integrations",
-      href: "/integrations",
-    },
-    {
-      icon: Settings,
-      label: "Settings",
-      href: "/settings",
-    },
+    { icon: Star, label: "Integrations", href: "/integrations" },
+    { icon: Settings, label: "Settings", href: "/settings" },
   ];
 
-  const isActive = (href) => {
-    if (href === "/") return pathname === "/";
-    return pathname === href;
-  };
+  const isActive = (href) => pathname === href;
 
   const renderIcon = (item, active = false, sizeHint = "lg") => {
     const sizeClass =
@@ -140,7 +217,7 @@ const Sidebar = () => {
         const colorClass = active ? "text-white" : "text-gray-600";
         return <IconComp className={`${sizeClass} ${colorClass}`} />;
       } catch (err) {
-        // swallow and continue to fallback
+        // fallback
       }
     }
 
@@ -165,7 +242,7 @@ const Sidebar = () => {
       );
     }
 
-    return <span className={`${sizeClass}`} />;
+    return <span className={sizeClass} />;
   };
 
   const baseClasses =
@@ -215,7 +292,7 @@ const Sidebar = () => {
 
       <aside
         ref={drawerRef}
-        className={`${baseClasses} ${motionClasses} w-64 md:w-68 lg:w-72 xl:w-80 max-w-64 md:max-w-68 lg:max-w-72 xl:max-w-80 min-w-64 md:min-w-68 lg:min-w-72 xl:min-w-80`}
+        className={`${baseClasses} ${motionClasses}`}
         style={{
           width: "280px",
           maxWidth: "280px",
@@ -237,7 +314,7 @@ const Sidebar = () => {
               className="w-8 h-8 md:w-9 md:h-9 lg:w-10 lg:h-10 rounded-lg"
             />
             <span className="text-sm md:text-base lg:text-lg font-semibold text-gray-800 font-['Plus_Jakarta_Sans',sans-serif] truncate">
-              {pathname === "/" ? "ORBIEAI" : "AMPLYUP.AI"}
+              {pathname === "/anomaly-main" ? "ORBIEAI" : "AMPLYUP.AI"}
             </span>
           </div>
         </div>
@@ -248,7 +325,7 @@ const Sidebar = () => {
             {menuStructure.map((item) => {
               const active = isActive(item.href);
               const hasSubmenus = item.submenus && item.submenus.length > 0;
-              const isExpanded = expandedMenus[item.id];
+              const isExpanded = !!expandedMenus[item.id];
 
               return (
                 <li key={item.id}>
@@ -263,7 +340,11 @@ const Sidebar = () => {
                       if (hasSubmenus) {
                         toggleMenu(item.id);
                       } else {
-                        window.location.href = item.href;
+                        // top-level without submenus: collapse, clear persisted open,
+                        // set a short-lived suppress token to survive remounts, then navigate
+                        clearPersistedOpen();
+                        setSuppressForShortWhile();
+                        router.push(item.href);
                       }
                     }}
                   >
@@ -296,14 +377,24 @@ const Sidebar = () => {
                   {hasSubmenus && isExpanded && (
                     <ul className="mt-1 space-y-1">
                       {item.submenus.map((submenu, subIndex) => {
-                        const subActive = isActive(submenu.href);
+                        // active only if pathname matches AND this parent is expanded
+                        const subActive =
+                          pathname === submenu.href && expandedMenus[item.id];
+
                         const submenuClass = subActive
                           ? "flex items-center px-3 md:px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 bg-[#5F44FA] text-white shadow-sm ml-4"
                           : "flex items-center px-6 md:px-8 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 text-gray-600 hover:bg-gray-50 hover:text-gray-900 ml-4";
 
                         return (
                           <li key={subIndex}>
-                            <Link href={submenu.href} className={submenuClass}>
+                            <Link
+                              href={submenu.href}
+                              className={submenuClass}
+                              onClick={() => {
+                                // Keep only this parent expanded when clicking its submenu and persist
+                                persistAndOpenOnly(item.id);
+                              }}
+                            >
                               {renderIcon(submenu, subActive, "sm")}
                               <span className="truncate text-sm font-medium font-['Plus_Jakarta_Sans',sans-serif]">
                                 {submenu.label}
@@ -321,7 +412,7 @@ const Sidebar = () => {
         </nav>
 
         {/* Bottom Section */}
-        {pathname === "/" ? (
+        {pathname === "/anomaly-main" ? (
           <nav className="px-3 md:px-4 py-4 md:py-6 flex-shrink-0 border-t border-gray-100">
             <ul className="space-y-2">
               {bottomMenuItems.map((item, index) => {
