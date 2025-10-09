@@ -16,6 +16,7 @@ import {
 
 const SIDEBAR_STORAGE_KEY = "sidebar:lastOpenParent";
 const SIDEBAR_SUPPRESS_KEY = "sidebar:suppressUntil";
+const ACTIVE_PARENT_KEY = "sidebar:activeParentForPath";
 const SUPPRESS_DURATION_MS = 1500;
 
 const Sidebar = () => {
@@ -26,9 +27,18 @@ const Sidebar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const drawerRef = useRef(null);
 
-  // Expandable menu state - lazy init prefers pathname, then localStorage, then collapsed
+  // Track which parent's submenu was last clicked for current path
+  const [activeParentForPath, setActiveParentForPath] = useState(() => {
+    if (typeof window === "undefined") return null;
+    try {
+      return sessionStorage.getItem(ACTIVE_PARENT_KEY);
+    } catch (e) {
+      return null;
+    }
+  });
+
+  // Expandable menu state
   const [expandedMenus, setExpandedMenus] = useState(() => {
-    // If we can read the pathname synchronously, prefer it
     try {
       const p = typeof window !== "undefined" ? window.location.pathname : null;
       if (p) {
@@ -41,7 +51,6 @@ const Sidebar = () => {
       // ignore
     }
 
-    // Fallback: try persisted value
     try {
       if (typeof window !== "undefined") {
         const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
@@ -54,7 +63,6 @@ const Sidebar = () => {
       // ignore storage errors
     }
 
-    // Default: both collapsed
     return { anomalyDetector: false, analyticsAgent: false };
   });
 
@@ -88,7 +96,7 @@ const Sidebar = () => {
     }
   };
 
-  // Helper: set session suppress so auto-expand effect skips for a short time (survives remount)
+  // Helper: set session suppress so auto-expand effect skips for a short time
   const setSuppressForShortWhile = () => {
     if (typeof window === "undefined") return;
     try {
@@ -124,7 +132,6 @@ const Sidebar = () => {
     } else if (pathname.startsWith("/analytics")) {
       persistAndOpenOnly("analyticsAgent");
     }
-    // otherwise keep current (don't override)
   }, [pathname]);
 
   // Close drawer when route changes - only for mobile
@@ -162,6 +169,19 @@ const Sidebar = () => {
         localStorage.setItem(SIDEBAR_STORAGE_KEY, menuKey);
       }
     } catch (e) {}
+  };
+
+  // Handle submenu click - track which parent's submenu was clicked
+  const handleSubmenuClick = (parentId) => {
+    setActiveParentForPath(parentId);
+    if (typeof window !== "undefined") {
+      try {
+        sessionStorage.setItem(ACTIVE_PARENT_KEY, parentId);
+      } catch (e) {
+        // ignore
+      }
+    }
+    persistAndOpenOnly(parentId);
   };
 
   const menuStructure = [
@@ -340,8 +360,6 @@ const Sidebar = () => {
                       if (hasSubmenus) {
                         toggleMenu(item.id);
                       } else {
-                        // top-level without submenus: collapse, clear persisted open,
-                        // set a short-lived suppress token to survive remounts, then navigate
                         clearPersistedOpen();
                         setSuppressForShortWhile();
                         router.push(item.href);
@@ -377,9 +395,10 @@ const Sidebar = () => {
                   {hasSubmenus && isExpanded && (
                     <ul className="mt-1 space-y-1">
                       {item.submenus.map((submenu, subIndex) => {
-                        // active only if pathname matches AND this parent is expanded
+                        // Active only if: path matches AND this parent owns this path
                         const subActive =
-                          pathname === submenu.href && expandedMenus[item.id];
+                          pathname === submenu.href &&
+                          activeParentForPath === item.id;
 
                         const submenuClass = subActive
                           ? "flex items-center px-3 md:px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 bg-[#5F44FA] text-white shadow-sm ml-4"
@@ -390,10 +409,7 @@ const Sidebar = () => {
                             <Link
                               href={submenu.href}
                               className={submenuClass}
-                              onClick={() => {
-                                // Keep only this parent expanded when clicking its submenu and persist
-                                persistAndOpenOnly(item.id);
-                              }}
+                              onClick={() => handleSubmenuClick(item.id)}
                             >
                               {renderIcon(submenu, subActive, "sm")}
                               <span className="truncate text-sm font-medium font-['Plus_Jakarta_Sans',sans-serif]">
