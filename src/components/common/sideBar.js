@@ -7,7 +7,6 @@ import {
   Brain,
   Menu,
   X,
-  Plus,
   Settings,
   Star,
   ChevronDown,
@@ -17,6 +16,7 @@ import {
 const SIDEBAR_STORAGE_KEY = "sidebar:lastOpenParent";
 const SIDEBAR_SUPPRESS_KEY = "sidebar:suppressUntil";
 const ACTIVE_PARENT_KEY = "sidebar:activeParentForPath";
+const FRESH_LOAD_KEY = "sidebar:isFreshLoad";
 const SUPPRESS_DURATION_MS = 1500;
 
 const Sidebar = () => {
@@ -28,43 +28,52 @@ const Sidebar = () => {
   const drawerRef = useRef(null);
 
   // Track which parent's submenu was last clicked for current path
-  const [activeParentForPath, setActiveParentForPath] = useState(() => {
-    if (typeof window === "undefined") return null;
-    try {
-      return sessionStorage.getItem(ACTIVE_PARENT_KEY);
-    } catch (e) {
-      return null;
-    }
+  const [activeParentForPath, setActiveParentForPath] = useState(null);
+
+  // Expandable menu state: start closed and initialise in an effect (avoids SSR window reads)
+  const [expandedMenus, setExpandedMenus] = useState({
+    anomalyDetector: false,
+    analyticsAgent: false,
   });
 
-  // Expandable menu state
-  const [expandedMenus, setExpandedMenus] = useState(() => {
-    try {
-      const p = typeof window !== "undefined" ? window.location.pathname : null;
-      if (p) {
-        if (p.startsWith("/anomaly"))
-          return { anomalyDetector: true, analyticsAgent: false };
-        if (p.startsWith("/analytics"))
-          return { anomalyDetector: false, analyticsAgent: true };
-      }
-    } catch (e) {
-      // ignore
-    }
+  const menuStructure = [
+    {
+      id: "anomalyDetector",
+      icon: "custom",
+      iconSrc: "/images/icon1.png",
+      label: "Anomaly Detector",
+      href: "/anomaly-main",
+      submenus: [
+        { icon: FileText, label: "Main", href: "/" },
+        { icon: FileText, label: "Agent Journal", href: "/agentJournal" },
+      ],
+    },
+    {
+      id: "analyticsAgent",
+      icon: "custom",
+      iconSrc: "/images/icon2.png",
+      label: "Analytics Agent",
+      href: "/analytics-main",
+      submenus: [
+        { icon: FileText, label: "Main", href: "/" },
+        { icon: FileText, label: "Agent Journal", href: "/agentJournal" },
+      ],
+    },
+    {
+      id: "createNewAgent",
+      icon: "custom",
+      iconSrc: "/images/icon3.png",
+      label: "Create New Agent",
+      href: "/newAgent",
+      submenus: [],
+    },
+  ];
 
-    try {
-      if (typeof window !== "undefined") {
-        const stored = localStorage.getItem(SIDEBAR_STORAGE_KEY);
-        if (stored === "anomalyDetector")
-          return { anomalyDetector: true, analyticsAgent: false };
-        if (stored === "analyticsAgent")
-          return { anomalyDetector: false, analyticsAgent: true };
-      }
-    } catch (e) {
-      // ignore storage errors
-    }
-
-    return { anomalyDetector: false, analyticsAgent: false };
-  });
+  const bottomMenuItems = [
+    { icon: Brain, label: "AI Advisor", href: "/ai-advisor" },
+    { icon: Star, label: "Integrations", href: "/integrations" },
+    { icon: Settings, label: "Settings", href: "/settings" },
+  ];
 
   // Helper: persist which parent is open and set state so only that parent is open
   const persistAndOpenOnly = (menuKey) => {
@@ -120,18 +129,124 @@ const Sidebar = () => {
     }
   };
 
-  // Auto-expand based on current path (prefix matching).
-  // Skip if suppression session key is active.
+  // Clear sessionStorage on page unload/refresh to ensure fresh load behavior
   useEffect(() => {
-    if (!pathname) return;
+    const handleBeforeUnload = () => {
+      if (typeof window !== "undefined") {
+        try {
+          sessionStorage.removeItem(ACTIVE_PARENT_KEY);
+          sessionStorage.removeItem(FRESH_LOAD_KEY);
+        } catch (e) {
+          // ignore
+        }
+      }
+    };
 
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, []);
+
+  // Initialise expandedMenus and activeParentForPath
+  // DEFAULT: Always open Anomaly Detector on fresh page load
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // Check if this is a fresh page load (not in-app navigation)
+    const isFreshLoad = !sessionStorage.getItem(FRESH_LOAD_KEY);
+
+    if (isFreshLoad) {
+      // Fresh page load - ALWAYS default to Anomaly Detector
+      sessionStorage.setItem(FRESH_LOAD_KEY, "true");
+      sessionStorage.removeItem(ACTIVE_PARENT_KEY);
+
+      setExpandedMenus({ anomalyDetector: true, analyticsAgent: false });
+      setActiveParentForPath("anomalyDetector");
+
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, "anomalyDetector");
+        sessionStorage.setItem(ACTIVE_PARENT_KEY, "anomalyDetector");
+      } catch (e) {}
+
+      console.debug(
+        "Sidebar:init -> Fresh page load, opened anomalyDetector (default)"
+      );
+      return;
+    }
+
+    // Not a fresh load - this is in-app navigation
+    // restore last active parent for path from sessionStorage
+    let storedActive = null;
+    try {
+      storedActive = sessionStorage.getItem(ACTIVE_PARENT_KEY);
+      if (storedActive) setActiveParentForPath(storedActive);
+    } catch (e) {
+      // ignore
+    }
+
+    // If suppression is active, skip auto-open
     if (isSuppressed()) return;
 
-    if (pathname.startsWith("/anomaly")) {
-      persistAndOpenOnly("anomalyDetector");
-    } else if (pathname.startsWith("/analytics")) {
-      persistAndOpenOnly("analyticsAgent");
+    // PRIORITY 1: If user explicitly clicked a submenu in current session, maintain that parent open
+    if (storedActive === "analyticsAgent") {
+      setExpandedMenus({ anomalyDetector: false, analyticsAgent: true });
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, "analyticsAgent");
+      } catch (e) {}
+      console.debug(
+        "Sidebar:init -> opened analyticsAgent from activeParentForPath (user clicked submenu)"
+      );
+      return;
     }
+
+    if (storedActive === "anomalyDetector") {
+      setExpandedMenus({ anomalyDetector: true, analyticsAgent: false });
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, "anomalyDetector");
+      } catch (e) {}
+      console.debug(
+        "Sidebar:init -> opened anomalyDetector from activeParentForPath (user clicked submenu)"
+      );
+      return;
+    }
+
+    // PRIORITY 2: Check if we're explicitly on analytics main path
+    if (pathname && pathname.startsWith("/analytics")) {
+      setExpandedMenus({ anomalyDetector: false, analyticsAgent: true });
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, "analyticsAgent");
+        sessionStorage.setItem(ACTIVE_PARENT_KEY, "analyticsAgent");
+      } catch (e) {}
+      setActiveParentForPath("analyticsAgent");
+      console.debug(
+        "Sidebar:init -> opened analyticsAgent based on pathname",
+        pathname
+      );
+      return;
+    }
+
+    // PRIORITY 3: Check if we're on anomaly main path
+    if (pathname && pathname.startsWith("/anomaly")) {
+      setExpandedMenus({ anomalyDetector: true, analyticsAgent: false });
+      try {
+        localStorage.setItem(SIDEBAR_STORAGE_KEY, "anomalyDetector");
+        sessionStorage.setItem(ACTIVE_PARENT_KEY, "anomalyDetector");
+      } catch (e) {}
+      setActiveParentForPath("anomalyDetector");
+      console.debug(
+        "Sidebar:init -> opened anomalyDetector based on pathname",
+        pathname
+      );
+      return;
+    }
+
+    // DEFAULT: Always open Anomaly Detector for all other cases
+    setExpandedMenus({ anomalyDetector: true, analyticsAgent: false });
+    try {
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, "anomalyDetector");
+      sessionStorage.setItem(ACTIVE_PARENT_KEY, "anomalyDetector");
+    } catch (e) {}
+    setActiveParentForPath("anomalyDetector");
+    console.debug("Sidebar:init -> opened anomalyDetector (default behavior)");
   }, [pathname]);
 
   // Close drawer when route changes - only for mobile
@@ -183,45 +298,6 @@ const Sidebar = () => {
     }
     persistAndOpenOnly(parentId);
   };
-
-  const menuStructure = [
-    {
-      id: "anomalyDetector",
-      icon: "custom",
-      iconSrc: "/images/icon1.png",
-      label: "Anomaly Detector",
-      href: "/anomaly-main",
-      submenus: [
-        { icon: FileText, label: "Main", href: "/" },
-        { icon: FileText, label: "Agent Journal", href: "/agentJournal" },
-      ],
-    },
-    {
-      id: "analyticsAgent",
-      icon: "custom",
-      iconSrc: "/images/icon2.png",
-      label: "Analytics Agent",
-      href: "/analytics-main",
-      submenus: [
-        { icon: FileText, label: "Main", href: "/" },
-        { icon: FileText, label: "Agent Journal", href: "/agentJournal" },
-      ],
-    },
-    {
-      id: "createNewAgent",
-      icon: "custom",
-      iconSrc: "/images/icon3.png",
-      label: "Create New Agent",
-      href: "/newAgent",
-      submenus: [],
-    },
-  ];
-
-  const bottomMenuItems = [
-    { icon: Brain, label: "AI Advisor", href: "/ai-advisor" },
-    { icon: Star, label: "Integrations", href: "/integrations" },
-    { icon: Settings, label: "Settings", href: "/settings" },
-  ];
 
   const isActive = (href) => pathname === href;
 
